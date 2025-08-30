@@ -1,10 +1,10 @@
 # pilot.py
 from agents.youth_safety_agent import YouthSafetyAgent
-# from agents.data_privacy_agent import DataPrivacyAgent
-# from agents.content_moderation_agent import ContentModerationAgent
-# from agents.consumer_protection_agent import ConsumerProtectionAgent
-# from agents.ai_governanece_agent import AIGovernanceAgent
-# from agents.ip_protection_agent import IPProtectionAgent
+from agents.data_privacy_agent import DataPrivacyAgent
+from agents.content_moderation_agent import ContentModerationAgent
+from agents.consumer_protection_agent import ConsumerProtectionAgent
+from agents.ai_governance_agent import AIGovernanceAgent
+from agents.ip_protection_agent import IPProtectionAgent
 from agents.classifier_agent import ClassifierAgent
 
 from utils.rag import get_vector_db, embedding_model
@@ -31,11 +31,11 @@ def initialize_agents():
     agents = []
 
     agents.append(load_agent(YouthSafetyAgent, "youth_safety"))
-    # agents.append(load_agent(DataPrivacyAgent, "data_privacy"))
-    # agents.append(load_agent(ContentModerationAgent, "content_moderation"))
-    # agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
-    # agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
-    # agents.append(load_agent(IPProtectionAgent, "ip_protection"))
+    agents.append(load_agent(DataPrivacyAgent, "data_privacy"))
+    agents.append(load_agent(ContentModerationAgent, "content_moderation"))
+    agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
+    agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
+    agents.append(load_agent(IPProtectionAgent, "ip_protection"))
 
     return agents
 
