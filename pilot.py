@@ -7,7 +7,7 @@ from agents.ai_governance_agent import AIGovernanceAgent
 from agents.ip_protection_agent import IPProtectionAgent
 from agents.classifier_agent import ClassifierAgent
 
-from utils.rag import get_vector_db, embedding_model
+from utils.rag import get_vector_db, embedding_model, HybridRetriever
 import os
 import config
 
@@ -19,11 +19,11 @@ def load_agent(agent_class, kb_name: str):
     # Create or load vector DB
     if not os.path.exists(db_path):
         from utils.rag import create_vector_db_from_dir
-        vectordb = create_vector_db_from_dir(kb_path, db_path, embedding_model)
+        vectordb, bm25 = create_vector_db_from_dir(kb_path, db_path, embedding_model)
     else:
-        vectordb = get_vector_db(db_path, embedding_model)
+        vectordb, bm25 = get_vector_db(db_path, embedding_model)
 
-    retriever = vectordb[0].as_retriever(search_kwargs={"k": 5})
+    retriever = HybridRetriever(vectordb, bm25, k=5)
     return agent_class(retriever)
 
 # Initialize all agents with their respective knowledge bases
