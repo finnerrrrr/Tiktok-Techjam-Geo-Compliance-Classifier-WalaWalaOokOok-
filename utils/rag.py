@@ -1,154 +1,227 @@
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.retrievers import BM25Retriever
-from langchain_core.retrievers import BaseRetriever
-from langchain.schema import Document
-from typing import List, Optional, Dict, Tuple, Any
-import os
+# utils/rag.py
+# -*- coding: utf-8 -*-
+"""
+RAG (Retrieve–Augment) — hybrid search over an ALREADY-BUILT domain VDB.
 
-from . import semanticchunker as sc
+This module assumes the *domain agent* has already:
+  • chunked its corpus (e.g., via your semanticchunker)
+  • computed document embeddings (L2-normalized) with a SentenceTransformer
+  • built a BM25Okapi index over chunk tokens
+  • stored these in a VDB object
 
-def create_vector_db_from_dir(directory_path: str, persist_directory: str, embedding_model):
-    """Create a Chroma vector DB and BM25 index from raw text files.
+What this module does:
+  • Accepts that VDB + a PREPPED query (string or dict from your QueryPrep agent)
+  • Runs hybrid search with FIXED weights:
+        hybrid = 0.60 * semantic_cosine + 0.40 * bm25_norm
+  • Returns ONLY the top_k chunks (default 5) as:
+        { "content": str, "relevance_score": float(0..10), "metadata": dict }
 
-    Each `.txt` file is assumed to follow the convention
-    ``<jurisdiction>_<law_code>_<clause>.txt`` and live under a domain
-    sub-folder (e.g. ``kb/data_privacy/SG_PDPA2012.txt``).  Metadata for
-    ``domain``, ``jurisdiction`` and ``clause`` are attached to every
-    chunk so downstream agents can filter and cite sources precisely.
+Expected VDB interface (duck-typed; no base class required):
+  vdb.chunks           -> List[chunk_items]; each chunk_item has either:
+                           - dict form: {"content": str, "metadata": dict}
+                           - attr form: .content: str, .metadata: dict
+  vdb.embeddings       -> np.ndarray of shape (N, d), L2-normalized
+  vdb.bm25             -> rank_bm25.BM25Okapi instance over the same chunks
+  vdb.embedder         -> (optional) a SentenceTransformer instance for query encoding
+  vdb.embedder_name    -> (optional) model name string for lazy loading if embedder not provided
+"""
+
+from __future__ import annotations
+
+import math
+import re
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+from rank_bm25 import BM25Okapi
+from sentence_transformers import SentenceTransformer
+
+
+# ---------------------------
+# Lightweight tokenizer for BM25
+# ---------------------------
+_TOKEN_RE = re.compile(r"[A-Za-z0-9]+", re.UNICODE)
+def _tok(text: str) -> List[str]:
+    return _TOKEN_RE.findall(text.lower())
+
+
+# ---------------------------
+# Core Searcher
+# ---------------------------
+class RAGSearcher:
+    """
+    Executes HYBRID search over a provided VDB:
+        hybrid = 0.60 * semantic_cosine + 0.40 * bm25_norm
+
+    Returns ONLY the top_k chunks with human-friendly scores (0..10).
     """
 
-    documents: List[Document] = []
-    for dirpath, _, filenames in os.walk(directory_path):
-        for filename in filenames:
-            if not filename.endswith(".txt"):
-                continue
-            filepath = os.path.join(dirpath, filename)
+    def __init__(self, semantic_weight: float = 0.60, bm25_weight: float = 0.40):
+        if not (0.0 <= semantic_weight <= 1.0 and 0.0 <= bm25_weight <= 1.0):
+            raise ValueError("Weights must be in [0,1].")
+        s = semantic_weight + bm25_weight
+        self.semantic_weight = semantic_weight / s
+        self.bm25_weight = bm25_weight / s
+        self._embedder_cache: Dict[str, SentenceTransformer] = {}
 
-            try:
-                law_name, chunked_doc = sc.get_chunks(filepath)
-            except Exception as e:
-                print(f"[RAG] Skipping {filename}: {e}")
-                continue
-
-            if not chunked_doc:
-                print(f"[RAG] Skipping {filename}: produced 0 chunks")
-                continue
-
-            # Determine metadata
-            rel_dir = os.path.relpath(dirpath, directory_path)
-            domain = rel_dir.split(os.sep)[0] if rel_dir != "." else "general"
-            base = os.path.splitext(filename)[0]
-            parts = base.split("_")
-            jurisdiction = parts[0] if len(parts) > 0 else ""
-            law_code = parts[1] if len(parts) > 1 else ""
-            clause = parts[2] if len(parts) > 2 else ""
-
-            source_path = os.path.join(rel_dir, filename) if rel_dir != "." else filename
-
-            for i, chunk in enumerate(chunked_doc):
-                documents.append(
-                    Document(
-                        page_content=chunk,
-                        metadata={
-                            "law": law_name,
-                            "domain": domain,
-                            "jurisdiction": jurisdiction,
-                            "law_code": law_code,
-                            "clause": clause,
-                            "source": source_path,
-                            "chunk_number": i,
-                        },
-                    )
-                )
-
-
-    if not documents:
-        raise ValueError(f"No usable .txt files found in {directory_path}")
-
-    vectordb = Chroma.from_documents(
-        documents=documents,
-        embedding=embedding_model,
-        persist_directory=persist_directory
-    )
-    vectordb.persist()
-
-    bm25_retriever = BM25Retriever.from_documents(documents)
-
-    return vectordb, bm25_retriever
-
-
-def get_vector_db(persist_directory: str, embedding_model):
-    """Load an existing Chroma vector database and rebuild the BM25 index."""
-    vectordb = Chroma(persist_directory=persist_directory, embedding_function=embedding_model)
-    items = vectordb.get()
-    documents = [Document(page_content=doc, metadata=meta) for doc, meta in zip(items["documents"], items["metadatas"])]
-    bm25_retriever = BM25Retriever.from_documents(documents)
-    return vectordb, bm25_retriever
-
-
-class HybridRetriever(BaseRetriever):
-    """Hybrid retriever using reciprocal rank fusion over dense and sparse results."""
-
-    vectorstore: Chroma
-    bm25_retriever: BM25Retriever
-    k: int = 5
-    rrf_k: int = 60
-
-    class Config:
-        arbitrary_types_allowed = True
-
-    def __init__(
+    def search(
         self,
-        vectorstore: Chroma,
-        bm25_retriever: BM25Retriever,
-        k: int = 5,
-        rrf_k: int = 60,
-        **data
-    ) -> None:
-        super().__init__(
-            vectorstore=vectorstore,
-            bm25_retriever=bm25_retriever,
-            k=k,
-            rrf_k=rrf_k,
-            **data
-        )
+        vdb: Any,  # duck-typed VDB (see file docstring)
+        prepped_query: Union[str, Dict[str, Any]],
+        top_k: int = 5,
+        candidate_k_each: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """
+        Args
+        ----
+        vdb: object with {chunks, embeddings, bm25, (embedder|embedder_name)}
+        prepped_query: string OR dict with fields like:
+            {
+              "feature_title": "...",
+              "feature_description": "...",
+              "feature_requirements": "...",
+              "potential_impacts": "...",
+              "regions": "EU"
+            }
+        top_k: number of results to return (default 5)
+        candidate_k_each: shortlist size per modality before fusion (default 50)
 
-    def get_relevant_documents(
-        self, query: str, *, filters: Optional[Dict[str, str]] = None
-    ) -> List[Document]:
-        """Retrieve top ``k`` documents using semantic + BM25 fusion."""
+        Returns
+        -------
+        List[dict] where each item is:
+            {
+              "content": str,
+              "relevance_score": float (0..10),
+              "metadata": dict
+            }
+        """
+        # --- validate VDB surface ---
+        _ensure_has(vdb, "chunks")
+        _ensure_has(vdb, "embeddings")
+        _ensure_has(vdb, "bm25")
 
-        dense_docs = self.vectorstore.similarity_search(query, k=self.k, filter=filters)
+        if len(vdb.chunks) == 0:
+            return []
 
-        self.bm25_retriever.k = self.k
-        sparse_docs = self.bm25_retriever.get_relevant_documents(query)
-        if filters:
-            sparse_docs = [d for d in sparse_docs if all(d.metadata.get(key) == val for key, val in filters.items())]
+        # 1) Build a single query string
+        q_text = _combine_prepped_query(prepped_query)
 
-        scored: Dict[Tuple[str, Tuple[Tuple[str, Any], ...]], Tuple[Document, float]] = {}
+        # 2) Encode query using the SAME embedder
+        embedder = _resolve_embedder(vdb, self._embedder_cache)
+        q_vec = embedder.encode([q_text], normalize_embeddings=True, convert_to_numpy=True)[0]
 
-        def _update_scores(docs: List[Document]) -> None:
-            for rank, doc in enumerate(docs):
-                key = (doc.page_content, tuple(sorted(doc.metadata.items())))
-                score = 1 / (self.rrf_k + rank + 1)
-                if key in scored:
-                    scored[key] = (doc, scored[key][1] + score)
-                else:
-                    scored[key] = (doc, score)
+        # 3) Modality scores over ALL docs
+        emb: np.ndarray = vdb.embeddings
+        if not isinstance(emb, np.ndarray):
+            raise TypeError("vdb.embeddings must be a NumPy ndarray")
+        if emb.ndim != 2 or emb.shape[0] != len(vdb.chunks):
+            raise ValueError("vdb.embeddings shape must be (N, d) aligned with vdb.chunks")
 
-        _update_scores(dense_docs)
-        _update_scores(sparse_docs)
+        sem_scores_all = (emb @ q_vec)  # cosine similarity
+        if not isinstance(vdb.bm25, BM25Okapi):
+            raise TypeError("vdb.bm25 must be a rank_bm25.BM25Okapi instance")
+        bm25_scores_all = vdb.bm25.get_scores(_tok(q_text))  # arbitrary positive scale
 
-        ranked_docs = sorted(scored.values(), key=lambda x: x[1], reverse=True)
-        return [doc for doc, _ in ranked_docs[: self.k]]
+        # 4) Per-modality candidates
+        sem_rank = np.argsort(-sem_scores_all)
+        bm_rank = np.argsort(-bm25_scores_all)
+        sem_cands = sem_rank[: min(candidate_k_each, len(sem_rank))]
+        bm_cands = bm_rank[: min(candidate_k_each, len(bm_rank))]
+        cand_ids = list(dict.fromkeys(list(sem_cands) + list(bm_cands)))  # dedup, preserve order
 
-    # Add the async version if needed by LangChain
-    async def aget_relevant_documents(
-        self, query: str, *, filters: Optional[Dict[str, str]] = None
-    ) -> List[Document]:
-        """Async version of get_relevant_documents."""
-        return self.get_relevant_documents(query, filters=filters)
-      
-# Use a good open-source embedding model
-embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        # Edge case: fewer candidates than requested
+        if not cand_ids:
+            return []
+
+        # 5) Normalize scores within the candidate union
+        sem = [float(sem_scores_all[i]) for i in cand_ids]
+        bm = [float(bm25_scores_all[i]) for i in cand_ids]
+        sem_n = _minmax_norm(sem)  # 0..1
+        bm_n = _minmax_norm(bm)    # 0..1
+
+        # 6) Hybrid score
+        hybrid = [self.semantic_weight * s + self.bm25_weight * b for s, b in zip(sem_n, bm_n)]
+        order = np.argsort(-np.asarray(hybrid))[: top_k]
+
+        # 7) Build results
+        results: List[Dict[str, Any]] = []
+        for pos in order:
+            idx = cand_ids[pos]
+            content, meta = _get_content_and_meta(vdb.chunks[idx])
+            score_0_10 = 10.0 * float(hybrid[pos])
+            results.append({
+                "content": content,
+                "relevance_score": round(score_0_10, 3),
+                "metadata": meta,
+            })
+
+        return results
+
+
+# ---------------------------
+# Helpers
+# ---------------------------
+def _ensure_has(obj: Any, attr: str) -> None:
+    if not hasattr(obj, attr):
+        raise AttributeError(f"VDB is missing required attribute: {attr}")
+
+def _get_content_and_meta(item: Any) -> Tuple[str, Dict[str, Any]]:
+    # Supports dict items or objects with .content/.metadata
+    if isinstance(item, dict):
+        content = item.get("content", "")
+        meta = item.get("metadata", {}) or {}
+        return content, meta
+    if hasattr(item, "content"):
+        content = getattr(item, "content")
+        meta = getattr(item, "metadata", {}) or {}
+        return content, meta
+    raise TypeError("Chunk item must be a dict with keys {'content','metadata'} or have attributes .content/.metadata")
+
+def _resolve_embedder(vdb: Any, cache: Dict[str, SentenceTransformer]) -> SentenceTransformer:
+    # Prefer an already-initialized embedder on the VDB
+    embedder = getattr(vdb, "embedder", None)
+    if isinstance(embedder, SentenceTransformer):
+        return embedder
+    # Else, load by name (and cache)
+    name = getattr(vdb, "embedder_name", None)
+    if not isinstance(name, str) or not name.strip():
+        raise AttributeError("VDB must provide either .embedder (SentenceTransformer) or .embedder_name (str)")
+    if name not in cache:
+        cache[name] = SentenceTransformer(name)
+    return cache[name]
+
+def _minmax_norm(values: List[float]) -> List[float]:
+    if not values:
+        return []
+    vmin, vmax = float(min(values)), float(max(values))
+    if math.isclose(vmin, vmax):
+        return [0.5 for _ in values]
+    return [(v - vmin) / (vmax - vmin) for v in values]
+
+def _combine_prepped_query(q: Union[str, Dict[str, Any]]) -> str:
+    """
+    Converts a structured prepped query dict into a single search string.
+    If q is already a string, returns as-is.
+    Dict fields used (all optional): feature_title, feature_description,
+    feature_requirements, potential_impacts, regions.
+    """
+    if isinstance(q, str):
+        return q.strip()
+
+    parts: List[str] = []
+    title   = _safe_str(q.get("feature_title"))
+    desc    = _safe_str(q.get("feature_description"))
+    reqs    = _safe_str(q.get("feature_requirements"))
+    impacts = _safe_str(q.get("potential_impacts"))
+    regions = _safe_str(q.get("regions"))
+
+    if title:   parts.append(title)
+    if desc:    parts.append(desc)
+    if reqs:    parts.append(reqs)
+    if impacts: parts.append(impacts)
+    if regions: parts.append(f"region:{regions}")
+
+    return " ".join(parts).strip()
+
+def _safe_str(x: Any) -> str:
+    return str(x).strip() if isinstance(x, (str, int, float)) else ""
