@@ -23,7 +23,7 @@ def load_agent(agent_class, kb_name: str):
     else:
         vectordb = get_vector_db(db_path, embedding_model)
 
-    retriever = vectordb.as_retriever(search_kwargs={"k": 5})
+    retriever = vectordb[0].as_retriever(search_kwargs={"k": 5})
     return agent_class(retriever)
 
 # Initialize all agents with their respective knowledge bases
