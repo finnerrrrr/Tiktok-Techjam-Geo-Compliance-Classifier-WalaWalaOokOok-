@@ -3,6 +3,8 @@
 
 ![Alt text](assets/agent_workflow.png)
 
+# Demo
+Find the demo using `openai/gpt-oss-20b` over at Hugging Face [here](https://huggingface.co/spaces/greenery-scenery/Geo-Compliance-Classifier). For `gpt-3.5-turbo` or other models, run code locally with OpenAI's key.
 
 # From Guesswork to Governance — High-Level Agent Overview
 

@@ -1,42 +1,19 @@
-Florida House Bill 3 2024/()/()/
+The Florida Senate
+2024 Summary of Legislation Passed
+Committee on Judiciary
+CS/CS/HB 3 — Online Protections for Minors
+By Judiciary Committee; Regulatory Reform & Economic Development Subcommittee; and
+Reps. Tramont, Overdorf, Sirois, McFarland, Rayner, and others (CS/SB 1792 by Judiciary
+Committee and Senators Grall and Garcia)
 
+The bill requires regulated social media platforms to prohibit minors younger than 14 years of age from entering into contracts with social media platforms to become account holders. It allows minors who are 14 or 15 years of age to become account holders, but only with the consent of a parent or guardian. Social media platforms are regulated under the bill if they:
+- Allow users to upload content or view the content or activity of other users.
+- Satisfy certain daily active user metrics identified in the bill.
+- Employ algorithms that analyze user data or information on users to select content for users.
+- Have certain addictive features.
 
-THE FLORIDA SENATE 
-2024 SUMMARY OF LEGISLATION PASSED 
-Committee on Judiciary 
-CS/CS/HB 3 — Online Protections for Minors 
-by Judiciary Committee; Regulatory Reform & Economic Development Subcommittee; and 
-Reps. Tramont, Overdorf, Sirois, McFarland, Rayner, and others (CS/SB 1792 by Judiciary 
-Committee and Senators Grall and Garcia) 
+With respect to all accounts belonging to minors younger than 14, and to those accounts belonging to minors who are 14 or 15 years of age but for whom parents or guardians have not provided consent, the bill requires regulated social media platforms to terminate them and also allows the account holders or their parents or guardians to terminate them. Social media platforms must permanently delete all personal information held by them relating to terminated accounts unless otherwise required by law to maintain the personal information.
 
+The bill also requires regulated commercial entities that knowingly and intentionally publish or distribute material harmful to minors on a website or application to prohibit access to such material by any person younger than 18 years of age, if their website or application contains a substantial portion of material that is harmful to minors. Such commercial entities must verify, using either an anonymous or standard age verification method, that the age of a person attempting to access the material harmful to minors satisfies the bill’s age requirements. If an anonymous age verification method is used, the verification must be conducted by a nongovernmental, independent third party organized under the laws of a state of the U.S. Any information used to verify age must be deleted once the age is verified.
 
-The bill requires regulated social media platforms to prohibit minors younger than 14 years of 
-age from entering into contracts with social media platforms to become account holders. It 
-allows minors who are 14 or 15 years of age to become account holders, but only with the 
-consent of a parent or guardian. Social media platforms are regulated under the bill if they:  
-• Allow users to upload content or view the content or activity of other users.  
-• Satisfy certain daily active user metrics identified in the bill. 
-• Employ algorithms that analyze user data or information on users to select content for 
-users.  
-• Have certain addictive features.  
-With respect to all accounts belonging to minors younger than 14, and to those accounts 
-belonging to minors who are 14 or 15 years of age but for whom parents or guardians have not 
-provided consent, the bill requires regulated social media platforms to terminate them and also 
-allows the account holders or their parents or guardians to terminate them. Social media 
-platforms must permanently delete all personal information held by them relating to terminated 
-accounts unless otherwise required by law to maintain the personal information.  
-The bill also requires regulated commercial entities that knowingly and intentionally publish or 
-distribute material harmful to minors on a website or application to prohibit access to such 
-material by any person younger than 18 years of age, if their website or application contains a 
-substantial portion of material that is harmful to minors. Such commercial entities must verify, 
-using either an anonymous or standard age verification method, that the age of a person 
-attempting to access the material harmful to minors satisfies the bill’s age requirements. If an 
-anonymous age verification method is used, the verification must be conducted by a 
-nongovernmental, independent third party organized under the laws of a state of the U.S. Any 
-information used to verify age must be deleted once the age is verified. 
-Regulated social media platforms, commercial entities, and third parties performing age 
-verification for commercial entities that knowingly and recklessly violate the bill’s requirements 
-are subject to enforcement under the Florida Deceptive and Unfair Trade Practices Act. The 
-Department of Legal Affairs may collect civil penalties of up to $50,000 per violation, 
-reasonable attorney fees and court costs, and (under certain conditions) punitive damages. 
-Account holders who are minors may also pursue up to $10,000 in damages. 
+Regulated social media platforms, commercial entities, and third parties performing age verification for commercial entities that knowingly and recklessly violate the bill’s requirements are subject to enforcement under the Florida Deceptive and Unfair Trade Practices Act. The Department of Legal Affairs may collect civil penalties of up to $50,000 per violation, reasonable attorney fees and court costs, and (under certain conditions) punitive damages. Account holders who are minors may also pursue up to $10,000 in damages.
