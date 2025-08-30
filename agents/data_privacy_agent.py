@@ -1,4 +1,4 @@
-# agents/youth_safety_agent.py
+# agents/data_privacy_agent.py
 from .base_agent import BaseAgent
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -8,18 +8,18 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import config
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
-class YouthSafetyAgent(BaseAgent):
+class DataPrivacyAgent(BaseAgent):
     def __init__(self, retriever):
-        super().__init__("Youth Safety Agent", retriever)
+        super().__init__("Data Privacy Agent", retriever)
         # Prompt keeps the agent focused on youth-safety analysis and chunk citations
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system",
                 """
-                You are the Youth Safety domain expert.
-                Evaluate the feature's potential harm to minors using ONLY the provided law chunks.
+                You are the Data Privacy domain expert.
+                Evaluate privacy risks and obligations using ONLY the provided law chunks.
                 Each chunk is labelled with a law name and chunk number.
                 Only reference laws from this list: {laws_list}.
-                Do not make final compliance decisions—simply report youth-safety implications.
+                Do not make final compliance decisions—simply report data-privacy implications.
                 """
             ),
             ("human",
@@ -31,12 +31,12 @@ class YouthSafetyAgent(BaseAgent):
                 {context}
 
                 Your Task:
-                1. Identify any youth-safety concerns evident in these excerpts.
-                2. Cite the jurisdiction and law name (from {laws_list}) and chunk number for each concern.
-                3. If no youth-safety obligations are found, state 'None'.
+                1. Identify any data-privacy obligations or risks evident in these excerpts (e.g., legal basis/consent, transparency/notice, profiling or automated decisions, special/sensitive data such as emotion inference, children’s data, DPIA thresholds, cross-border transfers, purpose limitation, data minimization, retention).
+                2. For each cited point, include the jurisdiction and law name (from {laws_list}) and the chunk number(s).
+                3. If no data-privacy obligations are found, state 'None'.
 
                 Respond in this format:
-                - Youth-Safety Concern: [Yes/No/Unclear]
+                - Data-Privacy Concern: [Yes/No/Unclear]
                 - Analysis: [reasoning with law name(s) and chunk number(s)]
                 - Related Regulations: [list of cited laws or 'None']
                 """
@@ -96,7 +96,7 @@ class YouthSafetyAgent(BaseAgent):
         
         try:
             for line in lines:
-                if line.startswith("- Youth-Safety Concern:"):
+                if line.startswith("- Data-Privacy Concern:"):
                     value = line.replace("- Youth-Safety Concern:", "").strip()
                     result["requires_geo_compliance"] = value.lower() in ["yes", "y"]
                 elif line.startswith("- Analysis:"):
