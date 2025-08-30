@@ -33,6 +33,8 @@ def initialize_agents():
     return agents
 
 def main(ui=False):
+    import nltk
+    nltk.download('punkt_tab')
     # 1. Initialize all specialist agents
     print("Initializing agents and loading knowledge bases...")
     yield "Initializing agents and loading knowledge bases..."
