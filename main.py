@@ -1,5 +1,8 @@
 """
-pilot.py - orchestrates the end-to-end compliance workflow.
+main.py - orchestrates the end-to-end compliance workflow.
+
+This minimal runner currently activates only the YouthSafetyAgent. Other domain
+agents are referenced in comments for future expansion.
 
 Assumptions made:
 - Each domain agent will initialise its own vector database by calling a yet-to-be-created
@@ -19,12 +22,15 @@ from __future__ import annotations
 import asyncio
 from typing import List, Type
 
+# Only the YouthSafetyAgent is active for now. Other domain agents are
+# imported but commented out to illustrate where they would fit in the
+# workflow when enabled later.
 from agents.youth_safety_agent import YouthSafetyAgent
-from agents.data_privacy_agent import DataPrivacyAgent
-from agents.content_moderation_agent import ContentModerationAgent
-from agents.consumer_protection_agent import ConsumerProtectionAgent
-from agents.ai_governance_agent import AIGovernanceAgent
-from agents.ip_protection_agent import IPProtectionAgent
+# from agents.data_privacy_agent import DataPrivacyAgent
+# from agents.content_moderation_agent import ContentModerationAgent
+# from agents.consumer_protection_agent import ConsumerProtectionAgent
+# from agents.ai_governance_agent import AIGovernanceAgent
+# from agents.ip_protection_agent import IPProtectionAgent
 from agents.reranker_agent import RerankerAgent
 from agents.verifier_agent import VerifierAgent
 from agents.hitl_agent import HITLAgent
@@ -44,12 +50,13 @@ def main(feature_title: str, feature_description: str) -> None:
     # Assumes each agent handles its own VDB initialisation internally.
     domain_agent_classes: List[Type] = [
         YouthSafetyAgent,
-        DataPrivacyAgent,
-        ContentModerationAgent,
-        ConsumerProtectionAgent,
-        AIGovernanceAgent,
-        IPProtectionAgent,
+        # DataPrivacyAgent,
+        # ContentModerationAgent,
+        # ConsumerProtectionAgent,
+        # AIGovernanceAgent,
+        # IPProtectionAgent,
     ]
+    # Only instantiate the agents that are active in the list above.
     domain_agents = [cls() for cls in domain_agent_classes]
 
     # 3. Retrieve chunks from all domain agents
