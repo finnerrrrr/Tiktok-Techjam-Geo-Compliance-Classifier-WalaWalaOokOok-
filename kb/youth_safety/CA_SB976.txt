@@ -1,21 +1,16 @@
-California Senate Bill No. 976 2024/()/()/
-
-
+The California Senate
 Senate Bill No. 976
 CHAPTER 321
-
 An act to add Chapter 24 (commencing with Section 27000) to Division 20 of the Health and Safety Code, relating to youth addiction.
-
-[ Approved by Governor  September 20, 2024. Filed with Secretary of State  September 20, 2024. ]
+Approved by Governor: September 20, 2024
+Filed with Secretary of State: September 20, 2024
+Effective Date: 2024-09-20
 
 LEGISLATIVE COUNSEL'S DIGEST
-
 SB 976, Skinner. Protecting Our Kids from Social Media Addiction Act.
-Existing law, the California Age-Appropriate Design Code Act, requires, beginning July 1, 2024, a business that provides an online service, product, or feature likely to be accessed by children to comply with certain requirements. The act requires the business to complete a data protection impact assessment addressing, among other things, whether the design could harm children and whether and how the online product, service, or feature uses system design features to increase, sustain, or extend use of the online product, service, or feature by children, including the automatic playing of media, rewards for time spent, and notifications. Existing law prohibits the business from using the personal information of any child in a way that the business knows, or has reason to know, is materially detrimental to the physical health, mental health, or well-being of a child.
+
+Existing law, the California Age-Appropriate Design Code Act, requires, beginning July 1, 2024, a business that provides an online service, product, or feature likely to be accessed by children to comply with certain requirements. The act requires the business to complete a data protection impact assessment addressing whether the design could harm children and whether and how the online product, service, or feature uses system design features to increase, sustain, or extend use by children, including the automatic playing of media, rewards for time spent, and notifications. Existing law prohibits the business from using the personal information of any child in a way that it knows, or has reason to know, is materially detrimental to the physical health, mental health, or well-being of a child.
+
 Existing law, the Privacy Rights for California Minors in the Digital World, prohibits an operator of an internet website, online service, online application, or mobile application from specified conduct when minors are involved, including the marketing or advertising of alcoholic beverages, firearms, or certain other products or services. Existing law sets forth other related protections for minors, including under the California Consumer Privacy Act of 2018 and the California Privacy Rights Act of 2020.
-This bill, the Protecting Our Kids from Social Media Addiction Act, would make it unlawful for the operator of an addictive internet-based service or application, as defined, to provide an addictive feed to a user, unless the operator does not have actual knowledge that the user is a minor; commencing January 1, 2027, has reasonably determined that the user is not a minor; or has obtained verifiable parental consent to provide an addictive feed to the user who is a minor.
-The bill would define “addictive feed” as an internet website, online service, online application, or mobile application, in which multiple pieces of media generated or shared by users are recommended, selected, or prioritized for display to a user based on information provided by the user, or otherwise associated with the user or the user’s device, as specified, unless any of certain conditions are met.
-The bill would make it unlawful for the operator of an addictive internet-based service or application, between the hours of 12 a.m. and 6 a.m., in the user’s local time zone, and between the hours of 8 a.m. and 3 p.m., Monday through Friday from September through May in the user’s local time zone, to send notifications to a user if the operator has actual knowledge that the user is a minor or, commencing January 1, 2027, has not reasonably determined that the user is not a minor, unless the operator has obtained verifiable parental consent to send those notifications, as specified. The bill would set forth related provisions for certain access controls determined by the verified parent through a mechanism provided by the operator.
-Under the bill, a parent’s provision of consent or use of a mechanism, as described above, would not waive, release, otherwise limit, or serve as a defense to, any claim that the parent, or that the user who is a minor or was a minor at the time of using the internet-based service or application, might have against the operator regarding any harm to the mental health or well-being of the user.
-The bill would require an operator to annually disclose the number of minor users of its addictive internet-based service or application, and of that total the number for whom the operator has received verifiable parental consent to provide an addictive feed, and the number of minor users as to whom the access controls are or are not enabled.
-Under the bill, these provisions would only be enforced in a civil action brought in the name of the people of the State of California by the Attorney General. The bill would require the Attorney General to adopt regulations to further the purposes of these provisions, including regulations regarding age assurance and parental consent by January 1, 2027. The bill would authorize the Attorney General to adopt regulations that provide for exceptions to these provisions, but only if those exceptions further the purpose of protecting minors. The bill would require the Attorney General, in promulgating regulations, to solicit public comment regarding the impact that any regulation might have based on certain nondiscrimination characteristics set forth in existing law.
+
+This bill, the Protecting Our Kids from Social Media Addiction Act, would make it unlawful for the operator of an addictive internet-based service or application, as defined, to provide an addictive feed to a user, unless
