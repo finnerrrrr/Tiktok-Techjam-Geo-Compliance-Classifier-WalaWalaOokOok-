@@ -13,7 +13,7 @@ def create_vector_db_from_dir(directory_path, persist_directory, embedding_model
             continue
         filepath = os.path.join(directory_path, filename)
         try:
-            chunked_doc = sc.get_chunks(filepath)  # List[str]
+            law_name, chunked_doc = sc.get_chunks(filepath)  # List[str]
         except Exception as e:
             print(f"[RAG] Skipping {filename}: {e}")
             continue
@@ -24,7 +24,7 @@ def create_vector_db_from_dir(directory_path, persist_directory, embedding_model
 
         for i, chunk in enumerate(chunked_doc):
             documents.append(
-                Document(page_content=chunk, metadata={"source": filename, "chunk_number": i})
+                Document(page_content=chunk, metadata={"law": law_name, "source": filename, "chunk_number": i})
             )
 
     if not documents:
