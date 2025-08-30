@@ -95,6 +95,9 @@ class HybridRetriever(BaseRetriever):
     bm25_retriever: BM25Retriever
     k: int
     rrf_k: int
+
+    class Config:
+        arbitrary_types_allowed = True
     
     def __init__(
         self,
@@ -108,7 +111,7 @@ class HybridRetriever(BaseRetriever):
             bm25_retriever=bm25_retriever,
             k=k,
             rrf_k=rrf_k,
-            **kwargs
+            **data
         )
         
     def get_relevant_documents(
