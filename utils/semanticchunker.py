@@ -8,6 +8,11 @@ from nltk.tokenize import sent_tokenize
 from langchain.chat_models import init_chat_model
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import config
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+from typing import List
 
 nltk.download('punkt')
 
@@ -22,14 +27,16 @@ apikey = os.environ.get("OPENAI_API_KEY")
 _file = "C:\\Users\\Teh Ze Shi\\OneDrive\\schoolwork\TT Techjam 2025\\lol\\kb\\youth_safety\\FL_HB3.txt"
 
 class Chunk(BaseModel):
-    id: int = Field(description="Chunk index starting at 0")
-    sentence_ids: list[int] = Field(
-        description="Ordered sentence indices that belong to this chunk"
+    """Chunk with chunk_index and sentence_indices"""
+    chunk_index: int = Field(description="Integer chunk_index starting at 0")
+    sentence_indices: List[int] = Field(
+        description="Ordered sentence_indices that belong to this chunk"
     )
 
 class SemanticChunks(BaseModel):
-    chunks: list[Chunk] = Field(
-        description="List of chunks; each has an id and its sentence indices"
+    """List of chunks"""
+    chunks: List[Chunk] = Field(
+        description="List of chunks; each has a chunk_index and its sentence_indices"
     )
 
 def open_txt(txtfile):
@@ -57,6 +64,15 @@ def open_txt(txtfile):
 
 # Initialize structured llm function
 def init_llm():
+    if (hf_token := config.get_token()):
+        llm = HuggingFaceEndpoint(
+            repo_id='openai/gpt-oss-20b',
+            huggingfacehub_api_token = hf_token
+        )
+        
+        llm = ChatHuggingFace(llm = llm, temperature = 0)
+        structured_llm = llm.bind_tools([SemanticChunks])
+        return structured_llm
     try:
         llm = init_chat_model("gpt-4o-mini", model_provider="openai")
         structured_llm = llm.with_structured_output(SemanticChunks)
@@ -122,6 +138,8 @@ def get_chunks(doc, model=None):
 
     chunking_prompt_w_text = chunking_prompt.invoke({"text": processed_doc})
     chunks = model.invoke(chunking_prompt_w_text)
+    if (hf_token := config.get_token()):
+        chunks = SemanticChunks.model_validate(chunks.tool_calls[0]['args'])
 
     reconstructed_chunks = []
 
@@ -130,7 +148,7 @@ def get_chunks(doc, model=None):
     for chunk in chunks.chunks:
         print(chunk)
         chunk_sentences = []
-        for sentence_idx in chunk.sentence_ids:
+        for sentence_idx in chunk.sentence_indices:
             # **GUARD**: only append if index exists
             if sentence_idx in reconstruction_index:
                 chunk_sentences.append(reconstruction_index[sentence_idx])
