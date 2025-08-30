@@ -64,6 +64,7 @@ def create_vector_db_from_dir(directory_path: str, persist_directory: str, embed
                     )
                 )
 
+
     if not documents:
         raise ValueError(f"No usable .txt files found in {directory_path}")
 
@@ -115,8 +116,7 @@ class HybridRetriever(BaseRetriever):
             sparse_docs = [d for d in sparse_docs if all(d.metadata.get(key) == val for key, val in filters.items())]
 
         return dense_docs + sparse_docs
-
-
+      
 # Use a good open-source embedding model
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
