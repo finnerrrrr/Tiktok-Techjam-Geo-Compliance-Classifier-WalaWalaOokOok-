@@ -1,64 +1,66 @@
 # agents/base_agent.py
-from abc import ABC, abstractmethod
-from langchain.schema import BaseRetriever
+from __future__ import annotations
+
+from typing import Any, Dict, List
 from pydantic import BaseModel, Field
-from typing import List, Tuple
+import os, sys
 
-# Define Pydantic models for structured return data
-class RetrievedSource(BaseModel):
-    chunk_text: str = Field(description="The actual text content of the chunk")
-    source: str = Field(description="Filename or document source")
-    chunk_number: str = Field(description="Numerical identifier for this chunk")
-    law: str = Field(description="Name of the law this chunk belongs to")
+# Make ../utils importable
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utils.rag import RAGSearcher  # hybrid searcher (semantic + BM25)
 
-class RetrievalResult(BaseModel):
-    laws: List[str] = Field(description="Unique list of laws referenced in the retrieved chunks")
-    context: str = Field(description="Concatenated text of all retrieved chunks")
-    sources: List[RetrievedSource] = Field(description="List of source metadata for each chunk")
 
-class BaseAgent(ABC):
-    def __init__(self, name, retriever: BaseRetriever):
+class RetrievedChunk(BaseModel):
+    """Single retrieval unit (matches rag.py output shape)."""
+    content: str = Field(description="Chunk text")
+    relevance_score: float = Field(description="0..10 hybrid score")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict,
+        description="Chunk metadata from the VDB (e.g., law, source, chunk_number, jurisdiction)"
+    )
+
+
+class BaseAgent:
+    """
+    Minimal domain agent:
+      • holds a domain-specific VDB
+      • runs hybrid RAG via RAGSearcher
+      • returns top-k chunks (no judgments)
+    """
+
+    def __init__(self, name: str, vdb: Any, semantic_weight: float = 0.60, bm25_weight: float = 0.40):
+        """
+        Args:
+          name: Display name, e.g. "Youth Safety Agent"
+          vdb:  Duck-typed vector DB with:
+                - chunks (list[dict|obj{content, metadata}])
+                - embeddings (np.ndarray, L2-normalized)
+                - bm25 (rank_bm25.BM25Okapi)
+                - embedder or embedder_name (SentenceTransformer or str)
+        """
         self.name = name
-        self.retriever = retriever
+        self.vdb = vdb
+        self.searcher = RAGSearcher(semantic_weight=semantic_weight, bm25_weight=bm25_weight)
 
-    @abstractmethod
-    def analyze_feature(self, feature_description: str) -> dict:
+    def analyze_feature(
+        self,
+        prepped_query: str | Dict[str, Any],
+        top_k: int = 5,
+        candidate_k_each: int = 50,
+    ) -> List[Dict[str, Any]]:
         """
-        Analyze a feature summary. Must return a dict with:
-        {
-            "Content-Moderation Concern": [Yes/No/Unclear]
-            "Analysis": [reasoning with law name(s) and chunk number(s)]
-            "Related Regulations": [list of cited laws or 'None']
-        }
+        Perform hybrid retrieval and return k most relevant chunks.
+
+        Returns a list of dicts (directly from RAGSearcher):
+          [
+            {"content": str, "relevance_score": float, "metadata": dict},
+            ...
+          ]
         """
-        pass        
-
-    def _retrieve_context(self, query: str, k: int = 5) -> RetrievalResult:
-        """Retrieves relevant context from the agent's knowledge base."""
-        docs = self.retriever.get_relevant_documents(query)
-        
-        # Build context string
-        context = "\n\n".join([doc.page_content for doc in docs])
-        
-        # Build sources list with validation
-        sources = []
-        laws_set = set()
-        
-        for doc in docs:
-            source = RetrievedSource(
-                chunk_text=doc.page_content,
-                source=doc.metadata.get("source", "unknown"),
-                chunk_number=str(doc.metadata.get("chunk_number", "unknown")),
-                law=doc.metadata.get("law", "unknown")
-            )
-            sources.append(source)
-            laws_set.add(source.law)
-        
-        # Convert set to sorted list for consistent output
-        laws = sorted(list(laws_set))
-        
-        return RetrievalResult(laws=laws, context=context, sources=sources)
-
-    # def _create_optimized_query(self, feature_description: str) -> str:
-    #     """Simple query optimization. Override this in child classes for more sophistication."""
-    #     return f"{feature_description} legal compliance regulation law"
+        results = self.searcher.search(
+            vdb=self.vdb,
+            prepped_query=prepped_query,
+            top_k=top_k,
+            candidate_k_each=candidate_k_each,
+        )
+        return results

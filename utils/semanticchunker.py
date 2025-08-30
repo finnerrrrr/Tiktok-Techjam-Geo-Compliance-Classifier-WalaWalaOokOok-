@@ -130,7 +130,7 @@ def get_chunks(doc, model=None):
         Rules:
         - Keep sentences in original order within each chunk.
         - Do not skip indices you include; no duplicates within a chunk.
-        - Prefer 1-2 sentences per chunk if sentences are short, but just 1 if sentences are long.
+        - Prefer 2-3 sentences per chunk if sentences are short, but just 1-2 if sentences are long.
 
         Text to split:
         {text}"""
@@ -146,7 +146,7 @@ def get_chunks(doc, model=None):
     # (optional) keep your prints if you like
     # print(reconstruction_index.keys())
     for chunk in chunks.chunks:
-        print(chunk)
+        # print(chunk)
         chunk_sentences = []
         for sentence_idx in chunk.sentence_indices:
             # **GUARD**: only append if index exists
