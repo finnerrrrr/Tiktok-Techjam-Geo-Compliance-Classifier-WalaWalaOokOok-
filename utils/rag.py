@@ -5,7 +5,7 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.retrievers import BM25Retriever
 from langchain_core.retrievers import BaseRetriever
 from langchain.schema import Document
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple, Any
 import os
 
 from . import semanticchunker as sc
@@ -90,23 +90,24 @@ def get_vector_db(persist_directory: str, embedding_model):
 
 
 class HybridRetriever(BaseRetriever):
-    """Minimal hybrid retriever combining dense and sparse results."""
+    """Hybrid retriever using reciprocal rank fusion over dense and sparse results."""
 
-    def __init__(self, vectorstore: Chroma, bm25_retriever: BM25Retriever, k: int = 5) -> None:
+    def __init__(
+        self,
+        vectorstore: Chroma,
+        bm25_retriever: BM25Retriever,
+        k: int = 5,
+        rrf_k: int = 60,
+    ) -> None:
         self.vectorstore = vectorstore
         self.bm25_retriever = bm25_retriever
         self.k = k
+        self.rrf_k = rrf_k
 
     def get_relevant_documents(
         self, query: str, *, filters: Optional[Dict[str, str]] = None
     ) -> List[Document]:
-        """Retrieve documents from both stores and return their union.
-
-        ``filters`` is an optional dict of metadata key/value pairs. Filters are
-        applied to the dense results directly and then enforced on the sparse
-        results via post-filtering. No deduplication or re-ranking is performed;
-        downstream agents are responsible for that.
-        """
+        """Retrieve top ``k`` documents using semantic + BM25 fusion."""
 
         dense_docs = self.vectorstore.similarity_search(query, k=self.k, filter=filters)
 
@@ -115,7 +116,22 @@ class HybridRetriever(BaseRetriever):
         if filters:
             sparse_docs = [d for d in sparse_docs if all(d.metadata.get(key) == val for key, val in filters.items())]
 
-        return dense_docs + sparse_docs
+        scored: Dict[Tuple[str, Tuple[Tuple[str, Any], ...]], Tuple[Document, float]] = {}
+
+        def _update_scores(docs: List[Document]) -> None:
+            for rank, doc in enumerate(docs):
+                key = (doc.page_content, tuple(sorted(doc.metadata.items())))
+                score = 1 / (self.rrf_k + rank + 1)
+                if key in scored:
+                    scored[key] = (doc, scored[key][1] + score)
+                else:
+                    scored[key] = (doc, score)
+
+        _update_scores(dense_docs)
+        _update_scores(sparse_docs)
+
+        ranked_docs = sorted(scored.values(), key=lambda x: x[1], reverse=True)
+        return [doc for doc, _ in ranked_docs[: self.k]]
       
 # Use a good open-source embedding model
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
