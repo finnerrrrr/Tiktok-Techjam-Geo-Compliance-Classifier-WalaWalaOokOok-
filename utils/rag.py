@@ -3,7 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.retrievers import BM25Retriever
-from langchain.retrievers import BaseRetriever
+from langchain_core.retrievers import BaseRetriever
 from langchain.schema import Document
 from sentence_transformers import CrossEncoder
 from typing import List
