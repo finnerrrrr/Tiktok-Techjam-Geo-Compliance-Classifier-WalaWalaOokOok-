@@ -32,10 +32,10 @@ def initialize_agents():
 
     agents.append(load_agent(YouthSafetyAgent, "youth_safety"))
     agents.append(load_agent(DataPrivacyAgent, "data_privacy"))
-    agents.append(load_agent(ContentModerationAgent, "content_moderation"))
+    # agents.append(load_agent(ContentModerationAgent, "content_moderation"))
     agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
-    agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
-    agents.append(load_agent(IPProtectionAgent, "ip_protection"))
+    # agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
+    # agents.append(load_agent(IPProtectionAgent, "ip_protection"))
 
     return agents
 
