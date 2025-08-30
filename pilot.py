@@ -32,9 +32,10 @@ def initialize_agents():
     
     return agents
 
-def main():
+def main(ui=False):
     # 1. Initialize all specialist agents
     print("Initializing agents and loading knowledge bases...")
+    yield "Initializing agents and loading knowledge bases..."
     specialist_agents = initialize_agents()
     
     # 2. Get the feature description (this could be from user input, a file, etc.)
@@ -44,22 +45,30 @@ def main():
     """
     
     print(f"\nAnalyzing feature: {feature_description}")
+    yield f"\nAnalyzing feature: {feature_description}"
     
     # 3. Send the feature to EVERY agent for analysis
     all_results = {}
     for agent in specialist_agents:
         print(f"\n--- Consulting {agent.name} ---")
+        yield f"\n--- Consulting {agent.name} ---"
         result = agent.analyze_feature(feature_description)
         all_results[agent.name] = result
         print(f"Result: {result}")
+        yield f"Result: {result}"
     
     # 4. Consolidate and present the final results
     print("\n=== FINAL COMPLIANCE ASSESSMENT ===")
+    yield "\n=== FINAL COMPLIANCE ASSESSMENT ==="
     for agent_name, result in all_results.items():
         print(f"\n{agent_name}:")
         print(f"  Requires Geo-Compliance Logic: {result['requires_geo_compliance']}")
         print(f"  Reasoning: {result['reasoning']}")
         print(f"  Related Regulations: {result['related_regulations']}")
+        yield f"\n{agent_name}:"
+        yield f"  Requires Geo-Compliance Logic: {result['requires_geo_compliance']}"
+        yield f"  Reasoning: {result['reasoning']}"
+        yield f"  Related Regulations: {result['related_regulations']}"
 
 if __name__ == "__main__":
     main()
