@@ -24,8 +24,8 @@ class DataPrivacyAgent(BaseAgent):
             ),
             ("human",
                 """
-                Feature Description:
-                {feature_description}
+                Feature Summary:
+                {feature_summary}
 
                 Legal Excerpts:
                 {context}
@@ -43,7 +43,7 @@ class DataPrivacyAgent(BaseAgent):
             )
         ])
 
-    def analyze_feature(self, feature_description: str) -> dict:
+    def analyze_feature(self, feature_summary: str) -> dict:
         # Create the LLM object
         if (hf_token := config.get_token()):
             hf_endpoint = HuggingFaceEndpoint(
@@ -55,27 +55,24 @@ class DataPrivacyAgent(BaseAgent):
         else:
             llm = ChatOpenAI(model="gpt-3.5-turbo")
         
-        # Step 1: Create an optimized query
-        query = self._create_optimized_query(feature_description)
-        
-        # Step 2: Retrieve relevant context and laws
-        retrieval_result = self._retrieve_context(query, k=5)
+        # Step 1: Retrieve relevant context and laws
+        retrieval_result = self._retrieve_context(feature_summary, k=5)
         context = "\n\n".join(
             f"{src.law} (Chunk {src.chunk_number}): {src.chunk_text}" for src in retrieval_result.sources
         )
         laws_list = retrieval_result.laws
 
-        # Step 3: Fill in the prompt template with explicit laws list
+        # Step 2: Fill in the prompt template with explicit laws list
         prompt = self.prompt_template.format_messages(
-            feature_description=feature_description,
+            feature_summary=feature_summary,
             context=context,
             laws_list=", ".join(laws_list) if laws_list else "No relevant laws found"
         )
         
-        # Step 4: Get the analysis from the LLM
+        # Step 3: Get the analysis from the LLM
         analysis_result = llm.invoke(prompt).content
 
-        # Step 5: Parse the result and add source information
+        # Step 4: Parse the result and add source information
         result = self._parse_llm_output(analysis_result)
         
         # Add source metadata to the reasoning for auditability
