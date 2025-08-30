@@ -1,0 +1,165 @@
+Malaysia Personal Data Protection Act 
+2010 Revised Edition
+Place: Malaysia
+Effective Date: 2010-12-01
+
+Division 4 - Rights of data subject
+Section 30. Right of access to personal data
+(1) An individual is entitled to be informed by a data user whether personal data of which that individual is the data subject is being processed by or on behalf of the data user.
+(2) A requestor may, upon payment of a prescribed fee, make a data access request in writing to the data user—
+(a) for information of the data subject’s personal data that is being processed by or on behalf of the data user; and
+(b) to have communicated to him a copy of the personal data in an intelligible form.
+(3) A data access request for any information under subsection (2) shall be treated as a single request, and a data access request for information under paragraph (2)(a) shall, in the absence of any indication to the contrary, be treated as extending also to such request under paragraph
+(2)(b).
+(4) In the case of a data user having separate entries in respect of personal data held for different purposes, a separate data access request shall be made for each separate entry.
+(5) Where a data user does not hold the personal data, but controls the processing of the personal data in such a way as to prohibit the data user who holds the personal data from complying, whether in whole or part, with the data access request under subsection (2) which relates to the personal data, the firstmentioned data user shall be deemed to hold the personal data and the provisions of this Act shall be construed accordingly
+
+Section 31. Compliance with data access request
+(1) Subject to subsection (2) and section 32, a data user shall comply with a data access request under section 30 not later than twenty-one days from the date of receipt of the data access request.
+(2) A data user who is unable to comply with a data access request within the period specified in subsection (1) shall before the expiration of that period—
+(a) by notice in writing inform the requestor that he is unable to comply with the data access request within such period and the reasons why he is unable to do so; and
+(b) comply with the data access request to the extent that he is able to do so.
+(3) Notwithstanding subsection (2), the data user shall comply in whole with the data access request not later than fourteen days after the expiration of the period stipulated in subsection (1).
+
+Section 32. Circumstances where data user may refuse to comply with data access request
+(1) A data user may refuse to comply with a data access request under section 30 if—
+(a) the data user is not supplied with such information as he may reasonably require—
+(i) in order to satisfy himself as to the identity of the requestor; or
+(ii) where the requestor claims to be a relevant person, in order to satisfy himself—
+(A) as to the identity of the data subject in relation to whom the requestor claims to be the relevant person; and
+(B) that the requestor is the relevant person in relation to the data subject;
+(b) the data user is not supplied with such information as he may reasonably require to locate
+the personal data to which the data access request relates;
+(c) the burden or expense of providing access is disproportionate to the risks to the data
+subject’s privacy in relation to the personal data in the case in question;
+(d) the data user cannot comply with the data access request without disclosing personal data
+relating to another individual who can be identified from that information, unless—
+(i) that other individual has consented to the disclosure of the information to the requestor;
+or
+(ii) it is reasonable in all the circumstances to comply with the data access request without the consent of the other individual;
+(e) subject to subsection (3), any other data user controls the processing of the personal data to which the data access request relates in such a way as to prohibit the first-mentioned data user from complying, whether in whole or in part, with the data access request;
+(f) providing access would constitute a violation of an order of a court;
+(g) providing access would disclose confidential commercial information; or
+(h) such access to personal data is regulated by another law.
+(2) In determining for the purposes of subparagraph (1)(d)(ii) whether it is reasonable in all the circumstances to comply with the data access request without the consent of the other individual, regard shall be had, in particular, to—
+(a) any duty of confidentiality owed to the other individual;
+(b) any steps taken by the data user with a view to seeking the consent of the other individual;
+(c) whether the other individual is capable of giving consent; and
+(d) any express refusal of consent by the other individual.
+(3) Paragraph (1)(e) shall not operate so as to excuse the data user from complying with the data access request under subsection 30(2) to any extent that the data user can comply with the data access request without contravening the prohibition concerned.
+
+Section 33. Notification of refusal to comply with data access request
+Where a data user who pursuant to section 32 refuses to comply with a data access request under section 30, he shall, not later than twenty-one days from the date of receipt of the data access request, by notice in writing, inform the requestor—
+(a) of the refusal and the reasons for the refusal; and
+(b) where paragraph 32(1)(e) is applicable, of the name and address of the other data user concerned.
+Section 34. Right to correct personal data
+(1) Where—
+(a) a copy of the personal data has been supplied by the data user in compliance with the data access request under section 30 and the requestor considers that the personal data is inaccurate, incomplete, misleading or not up-to-date; or
+(b) the data subject knows that his personal data being held by the data user is inaccurate, incomplete, misleading or not up-to-date, the requestor or data subject, as the case may be, may make a data correction request in writing to the data user that the data user makes the necessary correction to the personal data.
+(2) Where a data user does not hold the personal data, but controls the processing of the personal data in such a way as to prohibit the data user who holds the personal data from complying, whether in whole or in part, with the data correction request under subsection (1) which relates to the personal data, the first-mentioned data user shall be deemed to be the data user to whom such a request may be made and the provisions of this Act shall be construed accordingly.
+Section 35. Compliance with data correction request
+(1) Subject to subsections (2), (3) and (5) and section 36, where a data user is satisfied that the personal data to which a data correction request relates is inaccurate, incomplete, misleading or not up-to-date, he shall, not later than twenty-one days from the date of receipt of the data correction request—
+(a) make the necessary correction to the personal data;
+(b) supply the requestor with a copy of the personal data as corrected; and
+(c) subject to subsection (4), where—
+(i) the personal data has been disclosed to a third party during the twelve months immediately preceding the day on which the correction is made; and
+(ii) the data user has no reason to believe that the third party has ceased using the personal data for the purpose, including any directly related purpose, for which the personal data was disclosed to the third party, take all practicable steps to supply the third party with a copy of the personal data as so corrected accompanied by a notice in writing stating the reasons for the correction.
+(2) A data user who is unable to comply with a data correction request within the period specified in subsection (1) shall before the expiration of that period—
+(a) by notice in writing inform the requestor that he is unable to comply with the data correction request within such period and the reasons why he is unable to do so; and
+(b) comply with the data correction request to the extent that he is able to do so.
+(3) Notwithstanding subsection (2), the data user shall comply in whole with the data correction request not later than fourteen days after the expiration of the period stipulated in subsection (1).
+(4) A data user is not required to comply with paragraph (1)(c) in any case where the disclosure of the personal data to a third party consists of the third party’s own inspection of a register—
+(a) in which the personal data is entered or otherwise recorded; and
+(b) which is available for inspection by the public.
+(5) Where a data user is requested to correct personal data under subsection 34(1) and the personal data is being processed by another data user that is in a better position to respond to the data correction request—
+(a) the first-mentioned data user shall immediately transfer the data correction request to such data user, and notify the requestor of this fact; and
+(b) sections 34, 35, 36 and 37 shall apply as if the references therein to a data user were references to such other data user.
+Section 36. Circumstances where data user may refuse to comply with data
+correction request
+(1) A data user may refuse to comply with a data correction request under section 34 if—
+(a) the data user is not supplied with such information as he may reasonably require—
+(i) in order to satisfy himself as to the identity of the requestor; or
+(ii) where the requestor claims to be a relevant person, in order to satisfy himself—
+(A) as to the identity of the data subject in relation to whom the requestor claims to be the relevant
+person; and
+(B) that the requestor is the relevant person in relation to the data subject;
+(b) the data user is not supplied with such information as he may reasonably require to ascertain in what way the personal data to which the data correction request relates is inaccurate, incomplete, misleading or not up-to-date;
+(c) the data user is not satisfied that the personal data to which the data correction request relates is inaccurate, incomplete, misleading or not up-to-date;
+(d) the data user is not satisfied that the correction which is the subject of the data correction request is accurate, complete, not misleading or up-to-date; or
+(e) subject to subsection (2), any other data user controls the processing of the personal data to which the data correction request relates in such a way as to prohibit the first-mentioned data user from complying, whether in whole or in part, with the data correction request.
+(2) Paragraph (1)(e) shall not operate so as to excuse the data user from complying with subsection 35(1) in relation to the data correction request to any extent that the data user can comply with that subsection without contravening the prohibition concerned.
+Section 37. Notification of refusal to comply with data correction request
+(1) Where a data user who pursuant to section 36 refuses to comply with a data correction request under section 34, he shall, not later than twenty-one days from the date of receipt of the data correction request, by notice in writing, inform the requestor—
+(a) of the refusal and the reasons for the refusal; and
+(b) where paragraph 36(1)(e) is applicable, of the name and address of the other data user
+concerned.
+(2) Without prejudice to the generality of subsection (1), where personal data to which the data correction request relates is an expression of opinion and the data user is not satisfied that the expression of opinion is inaccurate, incomplete, misleading or not up-to-date, the data user
+shall—
+(a) make a note, whether annexed to the personal data or elsewhere—
+(i) of the matters in respect of which the expression of opinion is considered by the requestor to be inaccurate, incomplete, misleading or not up-to-date; and
+(ii) in such a way that the personal data cannot be used by any person without the note being drawn to the attention of and being available for inspection by that person; and
+(b) attach a copy of the note to the notice referred to in subsection (1) which relates to the data correction request.
+(3) In this section, “expression of opinion” includes an assertion of fact which is unverifiable or in
+all circumstances of the case is not practicable to verify.
+(4) A data user who contravenes subsection (2) commits an offence and shall, on conviction, be liable to a fine not exceeding one hundred thousand ringgit or to imprisonment for a term not exceeding one year or to both.
+Section 38. Withdrawal of consent to process personal data
+(1) A data subject may by notice in writing withdraw his consent to the processing of personal
+data in respect of which he is the data subject.
+(2) The data user shall, upon receiving the notice under subsection (1), cease the processing of
+the personal data.
+(3) The failure of the data subject to exercise the right conferred by subsection (1) does not affect
+any other rights conferred on him by this Part.
+(4) A data user who contravenes subsection (2) commits an offence and shall, on conviction, be liable to a fine not exceeding one hundred thousand ringgit or to imprisonment for a term not exceeding one year or to both.
+Section 39. Extent of disclosure of personal data
+Notwithstanding section 8, personal data of a data subject may be disclosed by a data user for any purpose other than the purpose for which the personal data was to be disclosed at the time of its collection or any other purpose directly related to that purpose, only under the following circumstances:
+(a) the data subject has given his consent to the disclosure;
+(b) the disclosure —
+(i) is necessary for the purpose of preventing or detecting a crime, or for the purpose of investigations; or
+(ii) was required or authorized by or under any law or by the order of a court;
+(c) the data user acted in the reasonable belief that he had in law the right to disclose the personal data to the other person;
+(d) the data user acted in the reasonable belief that he would have had the consent of the data subject if the data subject had known of the disclosing of the personal data and the circumstances of such disclosure; or
+(e) the disclosure was justified as being in the public interest in circumstances as determined by the Minister.
+Section 40. Processing of sensitive personal data
+(1) Subject to subsection (2) and section 5, a data user shall not process any sensitive personal
+data of a data subject except in accordance with the following conditions:
+(a) the data subject has given his explicit consent to the processing of the personal data;
+(b) the processing is necessary—
+(i) for the purposes of exercising or performing any right or obligation which is conferred or
+imposed by law on the data user in connection with employment;
+(ii) in order to protect the vital interests of the data subject or another person, in a case
+where—
+(A) consent cannot be given by or on behalf of the data subject; or
+(B) the data user cannot reasonably be expected to obtain the consent of the data subject;
+(iii) in order to protect the vital interests of another person, in a case where consent by or
+on behalf of the data subject has been unreasonably withheld;
+(iv) for medical purposes and is undertaken by—
+(A) a healthcare professional; or
+(B) a person who in the circumstances owes a duty of confidentiality which is equivalent to that
+which would arise if that person were a healthcare professional;
+(v) for the purpose of, or in connection with, any legal proceedings;
+(vi) for the purpose of obtaining legal advice;
+(vii) for the purposes of establishing, exercising or defending legal rights;
+(viii) for the administration of justice;
+(ix) for the exercise of any functions conferred on any person by or under any written law;
+or
+(x) for any other purposes as the Minister thinks fit; or
+(c) the information contained in the personal data has been made public as a result of steps
+deliberately taken by the data subject.
+(2) The Minister may by order published in the Gazette exclude the application of subparagraph
+(1)(b)(i), (viii) or (ix) in such cases as may be specified in the order, or provide that, in such cases
+as may be specified in the order, the condition in subparagraph (1)(b)(i), (viii) or (ix) is not to be
+regarded as satisfied unless such further conditions as may be specified in the order are also
+satisfied.
+(3) A person who contravenes subsection (1) commits an offence and shall, on conviction, be
+liable to a fine not exceeding two hundred thousand ringgit or to imprisonment for a term not
+exceeding two years or to both.
+(4) For the purposes of this section—
+“medical purposes” includes the purposes of preventive medicine, medical diagnosis, medical
+research, rehabilitation and the provision of care and treatment and the management of
+healthcare services;
+“healthcare services” has the meaning assigned to it in the Private Healthcare Facilities and
+Services Act 1998 [Act 586]; “healthcare professional” means a medical practitioner, dental practitioner, pharmacist, clinical
+psychologist, nurse, midwife, medical assistant, physiotherapist, occupational therapist and other
+allied healthcare professionals and any other person involved in the giving of medical, health,
+dental, pharmaceutical and any other healthcare services under the jurisdiction of the Ministry of
+Health.
