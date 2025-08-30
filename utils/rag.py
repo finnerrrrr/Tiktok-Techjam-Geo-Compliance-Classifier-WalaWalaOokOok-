@@ -14,12 +14,12 @@ What this module does:
   • Runs hybrid search with FIXED weights:
         hybrid = 0.60 * semantic_cosine + 0.40 * bm25_norm
   • Returns ONLY the top_k chunks (default 5) as:
-        { "content": str, "relevance_score": float(0..10), "metadata": dict }
+        { "content": str, "relevance_score": float(0..10), "law_name": str }
 
 Expected VDB interface (duck-typed; no base class required):
   vdb.chunks           -> List[chunk_items]; each chunk_item has either:
-                           - dict form: {"content": str, "metadata": dict}
-                           - attr form: .content: str, .metadata: dict
+                           - dict form: {"content": str, "law_name": str}
+                           - attr form: .content: str, .law_name: str
   vdb.embeddings       -> np.ndarray of shape (N, d), L2-normalized
   vdb.bm25             -> rank_bm25.BM25Okapi instance over the same chunks
   vdb.embedder         -> (optional) a SentenceTransformer instance for query encoding
@@ -92,7 +92,7 @@ class RAGSearcher:
             {
               "content": str,
               "relevance_score": float (0..10),
-              "metadata": dict
+              "law_name": str
             }
         """
         # --- validate VDB surface ---
@@ -147,12 +147,12 @@ class RAGSearcher:
         results: List[Dict[str, Any]] = []
         for pos in order:
             idx = cand_ids[pos]
-            content, meta = _get_content_and_meta(vdb.chunks[idx])
+            content, law_name = _get_content_and_law_name(vdb.chunks[idx])
             score_0_10 = 10.0 * float(hybrid[pos])
             results.append({
                 "content": content,
                 "relevance_score": round(score_0_10, 3),
-                "metadata": meta,
+                "law_name": law_name,
             })
 
         return results
@@ -165,17 +165,18 @@ def _ensure_has(obj: Any, attr: str) -> None:
     if not hasattr(obj, attr):
         raise AttributeError(f"VDB is missing required attribute: {attr}")
 
-def _get_content_and_meta(item: Any) -> Tuple[str, Dict[str, Any]]:
-    # Supports dict items or objects with .content/.metadata
+def _get_content_and_law_name(item: Any) -> Tuple[str, str]:
+    """Extracts content and law_name from a chunk item."""
+    # Supports dict items or objects with .content/.law_name
     if isinstance(item, dict):
         content = item.get("content", "")
-        meta = item.get("metadata", {}) or {}
-        return content, meta
+        law_name = item.get("law_name", "") or ""
+        return content, law_name
     if hasattr(item, "content"):
         content = getattr(item, "content")
-        meta = getattr(item, "metadata", {}) or {}
-        return content, meta
-    raise TypeError("Chunk item must be a dict with keys {'content','metadata'} or have attributes .content/.metadata")
+        law_name = getattr(item, "law_name", "") or ""
+        return content, law_name
+    raise TypeError("Chunk item must be a dict with keys {'content','law_name'} or have attributes .content/.law_name")
 
 def _resolve_embedder(vdb: Any, cache: Dict[str, SentenceTransformer]) -> SentenceTransformer:
     # Prefer an already-initialized embedder on the VDB
