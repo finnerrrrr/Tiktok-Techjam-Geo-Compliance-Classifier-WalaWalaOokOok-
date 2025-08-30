@@ -1,7 +1,7 @@
 
 # GeoLogicClassifer123
 
-![Alt text](assets/screenshot.png)
+![Alt text](assets/agent_workflow.png)
 
 
 # From Guesswork to Governance — High-Level Agent Overview
