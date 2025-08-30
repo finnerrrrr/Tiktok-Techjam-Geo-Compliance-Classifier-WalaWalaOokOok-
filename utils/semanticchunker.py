@@ -34,11 +34,26 @@ class SemanticChunks(BaseModel):
 
 def open_txt(txtfile):
     try:
-        file = open(txtfile, encoding='utf-8')
-        return file.read()
+        with open(txtfile, 'r', encoding='utf-8') as file:
+            text = file.read()
+
+        # Split to get title and content using your pattern
+        if '/()/()/\n\n\n' in text:
+            parts = text.split('/()/()/\n\n\n', 1)
+            title = parts[0].strip()
+            content = parts[1].strip()
+            return title, content
+        else:
+            # Fallback if pattern not found
+            print(f"Pattern not found in {txtfile}, using first line as title")
+            lines = text.split('\n', 1)
+            title = lines[0].strip()
+            content = lines[1] if len(lines) > 1 else ""
+            return title, content
+            
     except Exception as e:
-        print(e)
-        return None
+        print(f"Error reading {txtfile}: {e}")
+        return None, None
 
 # Initialize structured llm function
 def init_llm():
@@ -51,7 +66,7 @@ def init_llm():
 
 
 def split_and_index_doc(legi_doc_txt: str):
-    legi_doc = open_txt(legi_doc_txt)
+    legi_title, legi_doc = open_txt(legi_doc_txt)
     if not legi_doc or not legi_doc.strip():
         # make cause obvious to caller
         raise ValueError(f"Empty or unreadable file: {legi_doc_txt}")
@@ -78,14 +93,14 @@ def split_and_index_doc(legi_doc_txt: str):
         sentence_idx[i] = sentence
 
     out_str = " ".join(legi_doc_split_idxed)
-    return out_str, sentence_idx
+    return legi_title, out_str, sentence_idx
 
 
 def get_chunks(doc, model=None):
     if not model:
         model = init_llm()
 
-    processed_doc, reconstruction_index = split_and_index_doc(doc)
+    law_name, processed_doc, reconstruction_index = split_and_index_doc(doc)
 
     # if somehow empty, bail out early (caller can skip file)
     if not reconstruction_index:
@@ -94,7 +109,7 @@ def get_chunks(doc, model=None):
     chunking_prompt = ChatPromptTemplate.from_template(
         """You are an expert at splitting text into smaller chunks without breaking context.
         Each sentence in the input has a numeric index in <index>sentence</index> tags.
-        Return ONLY the fields defined in the SemanticChunking schema.
+        Return ONLY the fields defined in the SemanticChunks schema.
 
         Rules:
         - Keep sentences in original order within each chunk.
@@ -127,4 +142,4 @@ def get_chunks(doc, model=None):
     if not reconstructed_chunks:
         reconstructed_chunks = [" ".join(reconstruction_index[i] for i in sorted(reconstruction_index))]
 
-    return reconstructed_chunks
+    return law_name, reconstructed_chunks
