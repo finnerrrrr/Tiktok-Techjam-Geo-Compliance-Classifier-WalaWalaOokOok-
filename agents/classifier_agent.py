@@ -18,7 +18,7 @@ class ClassifierAgent(BaseAgent):
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system", "You are a meticulous geo-compliance officer at TikTok. Your goal is to prevent harm to users. Analyze the following feature and understand the opinions of experts from each legal domain. Flag the feature if it requires geo-specific compliance logic."),
             ("human", """
-            {feature_description}
+            {feature_summary}
 
             **Expert Opinions:**
             {opinions}
@@ -36,7 +36,7 @@ class ClassifierAgent(BaseAgent):
             """)
         ])
 
-    def analyze_feature(self, feature_description: str, opinions: str) -> dict:
+    def analyze_feature(self, feature_summary: str, opinions: str) -> dict:
         # Create the LLM object HERE, when the method is called
         if (hf_token := config.get_token()):
             llm = HuggingFaceEndpoint(
@@ -50,17 +50,15 @@ class ClassifierAgent(BaseAgent):
 
         # llm = ChatHuggingFace(llm = model, temperature = 0)
         
-        # Step 1: Create an optimized query
-        query = self._create_optimized_query(feature_description)
-        # Step 3: Fill in the prompt template
+        # Step 1: Fill in the prompt template
         prompt = self.prompt_template.format_messages(
-            feature_description=feature_description,
+            feature_summary=feature_summary,
             opinions = opinions
         )
-        # Step 4: Get the analysis from the LLM
+        # Step 2: Get the analysis from the LLM
         analysis_result = llm.invoke(prompt).content
 
-        # Step 5: Parse the result and add source information
+        # Step 3: Parse the result and add source information
         result = self._parse_llm_output(analysis_result)
         # Add source metadata to the reasoning
         return result

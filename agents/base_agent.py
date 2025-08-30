@@ -24,14 +24,14 @@ class BaseAgent(ABC):
     @abstractmethod
     def analyze_feature(self, feature_description: str) -> dict:
         """
-        Analyze a feature description. Must return a dict with:
+        Analyze a feature summary. Must return a dict with:
         {
-            "requires_geo_compliance": bool,
-            "reasoning": str,
-            "related_regulations": list
+            "Content-Moderation Concern": [Yes/No/Unclear]
+            "Analysis": [reasoning with law name(s) and chunk number(s)]
+            "Related Regulations": [list of cited laws or 'None']
         }
         """
-        pass
+        pass        
 
     def _retrieve_context(self, query: str, k: int = 5) -> RetrievalResult:
         """Retrieves relevant context from the agent's knowledge base."""
@@ -59,6 +59,6 @@ class BaseAgent(ABC):
         
         return RetrievalResult(laws=laws, context=context, sources=sources)
 
-    def _create_optimized_query(self, feature_description: str) -> str:
-        """Simple query optimization. Override this in child classes for more sophistication."""
-        return f"{feature_description} legal compliance regulation law"
+    # def _create_optimized_query(self, feature_description: str) -> str:
+    #     """Simple query optimization. Override this in child classes for more sophistication."""
+    #     return f"{feature_description} legal compliance regulation law"

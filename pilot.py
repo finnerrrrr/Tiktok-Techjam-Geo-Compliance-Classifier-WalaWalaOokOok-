@@ -8,6 +8,8 @@ from agents.ip_protection_agent import IPProtectionAgent
 from agents.classifier_agent import ClassifierAgent
 
 from utils.rag import get_vector_db, embedding_model, HybridRetriever
+from utils.inputqueryenhancer import enhance_query
+
 import os
 import config
 
@@ -32,14 +34,16 @@ def initialize_agents():
 
     agents.append(load_agent(YouthSafetyAgent, "youth_safety"))
     agents.append(load_agent(DataPrivacyAgent, "data_privacy"))
-    # agents.append(load_agent(ContentModerationAgent, "content_moderation"))
-    # agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
-    # agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
-    # agents.append(load_agent(IPProtectionAgent, "ip_protection"))
+    agents.append(load_agent(ContentModerationAgent, "content_moderation"))
+    agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
+    agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
+    agents.append(load_agent(IPProtectionAgent, "ip_protection"))
 
     return agents
 
-def main(feature_description, token = None):
+def main(feature_title, feature_description, token = None):
+    # 1. Enrich input feature query
+    query_summary = enhance_query(feature_title, feature_description)
     config.set_token(token)
     import nltk
     nltk.download('punkt_tab')
@@ -49,15 +53,15 @@ def main(feature_description, token = None):
     specialist_agents = initialize_agents()
     
     # 2. Get the feature description
-    print(f"\nAnalyzing feature: {feature_description}")
-    yield f"\nAnalyzing feature: {feature_description}"
+    print(f"\nAnalyzing feature: {query_summary.title}")
+    yield f"\nAnalyzing feature: {query_summary.title}"
     
     # 3. Send the feature to EVERY agent for analysis
     all_results = {}
     for agent in specialist_agents:
         print(f"\n--- Consulting {agent.name} ---")
         yield f"\n--- Consulting {agent.name} ---"
-        result = agent.analyze_feature(feature_description)
+        result = agent.analyze_feature(query_summary)
         all_results[agent.name] = result
         print(f"Result: {result}")
         yield f"Result: {result}"
