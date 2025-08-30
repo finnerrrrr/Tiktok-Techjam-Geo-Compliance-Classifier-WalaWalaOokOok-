@@ -91,7 +91,11 @@ def get_vector_db(persist_directory: str, embedding_model):
 
 class HybridRetriever(BaseRetriever):
     """Hybrid retriever using reciprocal rank fusion over dense and sparse results."""
-
+    vectorstore: Chroma
+    bm25_retriever: BM25Retriever
+    k: int
+    rrf_k: int
+    
     def __init__(
         self,
         vectorstore: Chroma,
