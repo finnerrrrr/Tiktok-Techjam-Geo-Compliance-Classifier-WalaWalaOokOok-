@@ -43,7 +43,7 @@ def initialize_agents():
 
 def main(feature_title, feature_description, token = None):
     # 1. Enrich input feature query
-    query_summary = enhance_query(feature_title, feature_description)
+    feature_summary = enhance_query(feature_title, feature_description)
     config.set_token(token)
     import nltk
     nltk.download('punkt_tab')
@@ -53,15 +53,17 @@ def main(feature_title, feature_description, token = None):
     specialist_agents = initialize_agents()
     
     # 2. Get the feature description
-    print(f"\nAnalyzing feature: {query_summary.title}")
-    yield f"\nAnalyzing feature: {query_summary.title}"
+    print(f"\nAnalyzing feature: {feature_summary.title}")
+    yield f"\nAnalyzing feature: {feature_summary.title}"
     
     # 3. Send the feature to EVERY agent for analysis
     all_results = {}
     for agent in specialist_agents:
         print(f"\n--- Consulting {agent.name} ---")
         yield f"\n--- Consulting {agent.name} ---"
-        result = agent.analyze_feature(query_summary)
+        
+        result = agent.analyze_feature(feature_summary)
+
         all_results[agent.name] = result
         print(f"Result: {result}")
         yield f"Result: {result}"
