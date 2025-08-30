@@ -5,9 +5,11 @@ from agents.base_agent import BaseAgent
 # from langchain_openai import ChatOpenAI  # <- FIXED IMPORT
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain.prompts import ChatPromptTemplate
-
-
-
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import config
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
 class ClassifierAgent(BaseAgent):
     def __init__(self, retriever = None):
@@ -36,11 +38,15 @@ class ClassifierAgent(BaseAgent):
 
     def analyze_feature(self, feature_description: str, opinions: str) -> dict:
         # Create the LLM object HERE, when the method is called
-        # need if else here since not everyone has openai api (for ui)
-        # llm = ChatOpenAI(model="gpt-3.5-turbo")
-        model = HuggingFaceEndpoint(
-            repo_id='openai/gpt-oss-20b'
-        )
+        if (hf_token := config.get_token()):
+            llm = HuggingFaceEndpoint(
+                repo_id='openai/gpt-oss-20b',
+                huggingfacehub_api_token = hf_token
+            )
+            
+            llm = ChatHuggingFace(llm = llm, temperature = 0)
+        else:
+            llm = ChatOpenAI(model="gpt-3.5-turbo")
 
         llm = ChatHuggingFace(llm = model, temperature = 0)
         
