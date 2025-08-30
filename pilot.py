@@ -1,36 +1,42 @@
 # pilot.py
 from agents.youth_safety_agent import YouthSafetyAgent
-# from agents.data_privacy_agent import DataPrivacyAgent  # You'll create this similarly
+from agents.data_privacy_agent import DataPrivacyAgent
+from agents.content_moderation_agent import ContentModerationAgent
+from agents.consumer_protection_agent import ConsumerProtectionAgent
+from agents.ai_governance_agent import AIGovernanceAgent
+from agents.ip_protection_agent import IPProtectionAgent
+from agents.classifier_agent import ClassifierAgent
+
 from utils.rag import get_vector_db, embedding_model
 import os
 import config
 
+# Helper function for DRY initialization
+def load_agent(agent_class, kb_name: str):
+    db_path = f"./kb/{kb_name}_chromadb"
+    kb_path = f"./kb/{kb_name}"
+
+    # Create or load vector DB
+    if not os.path.exists(db_path):
+        from utils.rag import create_vector_db_from_dir
+        vectordb = create_vector_db_from_dir(kb_path, db_path, embedding_model)
+    else:
+        vectordb = get_vector_db(db_path, embedding_model)
+
+    retriever = vectordb.as_retriever(search_kwargs={"k": 5})
+    return agent_class(retriever)
+
 # Initialize all agents with their respective knowledge bases
 def initialize_agents():
     agents = []
-    
-    # Initialize Youth Safety Agent
-    youth_safety_db_path = "./kb/youth_safety_chromadb" # Path to store/load the vector DB
-    youth_safety_kb_path = "./kb/youth_safety"          # Path to raw .txt files
-    
-    # Check if vector DB exists, if not, create it
-    if not os.path.exists(youth_safety_db_path):
-        from utils.rag import create_vector_db_from_dir
-        youth_vectordb = create_vector_db_from_dir(
-            youth_safety_kb_path, youth_safety_db_path, embedding_model
-        )
-    else:
-        youth_vectordb = get_vector_db(youth_safety_db_path, embedding_model)
-    
-    youth_retriever = youth_vectordb.as_retriever(search_kwargs={"k": 5})
-    agents.append(YouthSafetyAgent(youth_retriever))
-    
-    # Initialize Data Privacy Agent (Repeat the same process)
-    # data_privacy_db_path = "./kb/data_privacy_chromadb"
-    # data_privacy_kb_path = "./kb/data_privacy"
-    # ... [Create/get vector DB]
-    # agents.append(DataPrivacyAgent(data_retriever))
-    
+
+    agents.append(load_agent(YouthSafetyAgent, "youth_safety"))
+    agents.append(load_agent(DataPrivacyAgent, "data_privacy"))
+    # agents.append(load_agent(ContentModerationAgent, "content_moderation"))
+    agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
+    # agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
+    # agents.append(load_agent(IPProtectionAgent, "ip_protection"))
+
     return agents
 
 def main(feature_description, token = None):
@@ -42,8 +48,7 @@ def main(feature_description, token = None):
     yield "Initializing agents and loading knowledge bases..."
     specialist_agents = initialize_agents()
     
-    # 2. Get the feature description (this could be from user input, a file, etc.)
-    
+    # 2. Get the feature description
     print(f"\nAnalyzing feature: {feature_description}")
     yield f"\nAnalyzing feature: {feature_description}"
     
@@ -58,6 +63,7 @@ def main(feature_description, token = None):
         yield f"Result: {result}"
     
     # 4. Consolidate and present the final results
+    opinions = ''
     print("\n=== FINAL COMPLIANCE ASSESSMENT ===")
     yield "\n=== FINAL COMPLIANCE ASSESSMENT ==="
     for agent_name, result in all_results.items():
@@ -69,6 +75,18 @@ def main(feature_description, token = None):
         yield f"  Requires Geo-Compliance Logic: {result['requires_geo_compliance']}"
         yield f"  Reasoning: {result['reasoning']}"
         yield f"  Related Regulations: {result['related_regulations']}"
+        opinion = \
+f"""
+
+{agent_name}:
+Requires Geo-Compliance Logic: {result['requires_geo_compliance']}
+Reasoning: {result['reasoning']}
+Related Regulations: {result['related_regulations']}
+"""
+        opinions += opinion
+    
+    print(opinions)
+    # classifier
 
 if __name__ == "__main__":
     feature = """

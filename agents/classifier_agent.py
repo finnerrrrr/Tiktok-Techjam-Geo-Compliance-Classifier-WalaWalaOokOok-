@@ -2,7 +2,7 @@
 
 from agents.base_agent import BaseAgent
 # Use the updated, non-deprecated import:
-# from langchain_openai import ChatOpenAI  # <- FIXED IMPORT
+from langchain_openai import ChatOpenAI  # <- FIXED IMPORT
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain.prompts import ChatPromptTemplate
 import sys
@@ -48,7 +48,7 @@ class ClassifierAgent(BaseAgent):
         else:
             llm = ChatOpenAI(model="gpt-3.5-turbo")
 
-        llm = ChatHuggingFace(llm = model, temperature = 0)
+        # llm = ChatHuggingFace(llm = model, temperature = 0)
         
         # Step 1: Create an optimized query
         query = self._create_optimized_query(feature_description)

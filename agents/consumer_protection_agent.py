@@ -1,4 +1,4 @@
-# agents/youth_safety_agent.py
+# agents/consumer_protection_agent.py
 from .base_agent import BaseAgent
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
@@ -8,18 +8,19 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import config
 from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
-class YouthSafetyAgent(BaseAgent):
+
+class ConsumerProtectionAgent(BaseAgent):
     def __init__(self, retriever):
-        super().__init__("Youth Safety Agent", retriever)
-        # Prompt keeps the agent focused on youth-safety analysis and chunk citations
+        super().__init__("Consumer Protection Agent", retriever)
+        # Prompt keeps the agent focused on consumer-protection analysis and chunk citations
         self.prompt_template = ChatPromptTemplate.from_messages([
             ("system",
                 """
-                You are the Youth Safety domain expert.
-                Evaluate the feature's potential harm to minors using ONLY the provided law chunks.
+                You are the Consumer Protection domain expert.
+                Evaluate consumer-protection obligations and risks using ONLY the provided law chunks.
                 Each chunk is labelled with a law name and chunk number.
                 Only reference laws from this list: {laws_list}.
-                Do not make final compliance decisions—simply report youth-safety implications.
+                Do not make final compliance decisions—simply report consumer-protection implications.
                 """
             ),
             ("human",
@@ -31,12 +32,19 @@ class YouthSafetyAgent(BaseAgent):
                 {context}
 
                 Your Task:
-                1. Identify any youth-safety concerns evident in these excerpts.
-                2. Cite the jurisdiction and law name (from {laws_list}) and chunk number for each concern.
-                3. If no youth-safety obligations are found, state 'None'.
+                1. Identify any consumer-protection obligations or risks evident in these excerpts. Consider areas such as:
+                   - unfair or deceptive acts or practices (UDAAP/UDAP),
+                   - dark patterns/manipulative design,
+                   - ranking/personalization transparency and disclosures,
+                   - advertising/endorsement disclosures,
+                   - trial-to-paid, auto-renewal, cancellation/refund rules,
+                   - pricing clarity, hidden fees, or misleading claims,
+                   - complaint handling and redress.
+                2. For each cited point, include the jurisdiction and law name (from {laws_list}) and the chunk number(s).
+                3. If no consumer-protection obligations are found, state 'None'.
 
                 Respond in this format:
-                - Youth-Safety Concern: [Yes/No/Unclear]
+                - Consumer-Protection Concern: [Yes/No/Unclear]
                 - Analysis: [reasoning with law name(s) and chunk number(s)]
                 - Related Regulations: [list of cited laws or 'None']
                 """
@@ -44,20 +52,19 @@ class YouthSafetyAgent(BaseAgent):
         ])
 
     def analyze_feature(self, feature_description: str) -> dict:
-        # Create the LLM object
+        # Create the LLM object (same pattern as other agents)
         if (hf_token := config.get_token()):
             hf_endpoint = HuggingFaceEndpoint(
                 repo_id='openai/gpt-oss-20b',
-                huggingfacehub_api_token = hf_token
+                huggingfacehub_api_token=hf_token
             )
-            
-            llm = ChatHuggingFace(llm = hf_endpoint, temperature = 0)
+            llm = ChatHuggingFace(llm=hf_endpoint, temperature=0)
         else:
             llm = ChatOpenAI(model="gpt-3.5-turbo")
-        
+
         # Step 1: Create an optimized query
         query = self._create_optimized_query(feature_description)
-        
+
         # Step 2: Retrieve relevant context and laws
         retrieval_result = self._retrieve_context(query, k=5)
         context = "\n\n".join(
@@ -71,33 +78,33 @@ class YouthSafetyAgent(BaseAgent):
             context=context,
             laws_list=", ".join(laws_list) if laws_list else "No relevant laws found"
         )
-        
+
         # Step 4: Get the analysis from the LLM
         analysis_result = llm.invoke(prompt).content
 
         # Step 5: Parse the result and add source information
         result = self._parse_llm_output(analysis_result)
-        
+
         # Add source metadata to the reasoning for auditability
         source_info = self._format_source_info(retrieval_result.sources)
         result["reasoning"] = result["reasoning"] + f"\n\nSource References: {source_info}"
-        
+
         return result
 
     def _parse_llm_output(self, text: str) -> dict:
-        """Parses the LLM's text output into a structured dict."""
+        """Parses the LLM's text output into a structured dict (consistent with other agents)."""
         lines = [line.strip() for line in text.split('\n') if line.strip()]
-        
+
         result = {
             "requires_geo_compliance": False,
             "reasoning": "Unable to parse LLM output",
             "related_regulations": "None"
         }
-        
+
         try:
             for line in lines:
-                if line.startswith("- Youth-Safety Concern:"):
-                    value = line.replace("- Youth-Safety Concern:", "").strip()
+                if line.startswith("- Consumer-Protection Concern:"):
+                    value = line.replace("- Consumer-Protection Concern:", "").strip()
                     result["requires_geo_compliance"] = value.lower() in ["yes", "y"]
                 elif line.startswith("- Analysis:"):
                     result["reasoning"] = line.replace("- Analysis:", "").strip()
@@ -106,17 +113,17 @@ class YouthSafetyAgent(BaseAgent):
         except (IndexError, AttributeError):
             # Fallback if parsing fails
             result["reasoning"] = f"Raw LLM output: {text}"
-        
+
         return result
 
     def _format_source_info(self, sources: list) -> str:
-        """Formats source information for the audit trail."""
+        """Formats source information for the audit trail (same pattern as other agents)."""
         if not sources:
             return "No sources retrieved"
-        
+
         source_info = []
         for source in sources:
             info = f"{source.law} (Chunk {source.chunk_number})"
             source_info.append(info)
-        
+
         return "; ".join(source_info)
