@@ -1,0 +1,69 @@
+# agents/youth_safety_agent.py
+from agents.base_agent import BaseAgent
+# Use the updated, non-deprecated import:
+# from langchain_openai import ChatOpenAI  # <- FIXED IMPORT
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
+from langchain.prompts import ChatPromptTemplate
+
+
+
+
+class ClassifierAgent(BaseAgent):
+    def __init__(self, retriever = None):
+        super().__init__("Classifier Agent", retriever)
+        # Define the prompt template here
+        self.prompt_template = ChatPromptTemplate.from_messages([
+            ("system", "You are a meticulous geo-compliance officer at TikTok. Your goal is to prevent harm to users. Analyze the following feature and understand the opinions of experts from each legal domain. Flag the feature if it requires geo-specific compliance logic."),
+            ("human", """
+            {feature_description}
+
+            **Expert Opinions:**
+            {opinions}
+
+            **Your Task:**
+            1. Based on expert opinions, determine if this feature requires geo-specific compliance logic.
+            2. If yes, list every country/region and cite the specific law and article that triggers the requirement.
+            3. Provide clear, auditable reasoning for your decision.
+            4. If no issues are found based on the context, state that.
+
+            Output your final analysis in the following structured format:
+            - Requires Geo-Compliance Logic: [Yes/No/Unclear]
+            - Reasoning: [Your reasoning here]
+            - Related Regulations: [List of laws or 'None']
+            """)
+        ])
+
+    def analyze_feature(self, feature_description: str, opinions: str) -> dict:
+        # Create the LLM object HERE, when the method is called
+        # need if else here since not everyone has openai api (for ui)
+        # llm = ChatOpenAI(model="gpt-3.5-turbo")
+        model = HuggingFaceEndpoint(
+            repo_id='openai/gpt-oss-20b'
+        )
+
+        llm = ChatHuggingFace(llm = model, temperature = 0)
+        
+        # Step 1: Create an optimized query
+        query = self._create_optimized_query(feature_description)
+        # Step 3: Fill in the prompt template
+        prompt = self.prompt_template.format_messages(
+            feature_description=feature_description,
+            opinions = opinions
+        )
+        # Step 4: Get the analysis from the LLM
+        analysis_result = llm.invoke(prompt).content
+
+        # Step 5: Parse the result and add source information
+        result = self._parse_llm_output(analysis_result)
+        # Add source metadata to the reasoning
+        return result
+
+    def _parse_llm_output(self, text: str) -> dict:
+        """Parses the LLM's text output into a structured dict."""
+        lines = text.split('\n')
+        result = {
+            "requires_geo_compliance": lines[0],
+            "reasoning": lines[1].replace("- Reasoning: ", "").strip(),
+            "related_regulations": lines[2].replace("- Related Regulations: ", "").strip()
+        }
+        return result
