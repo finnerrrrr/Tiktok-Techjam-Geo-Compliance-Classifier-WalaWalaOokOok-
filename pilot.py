@@ -3,6 +3,7 @@ from agents.youth_safety_agent import YouthSafetyAgent
 # from agents.data_privacy_agent import DataPrivacyAgent  # You'll create this similarly
 from utils.rag import get_vector_db, embedding_model
 import os
+import config
 
 # Initialize all agents with their respective knowledge bases
 def initialize_agents():
@@ -32,7 +33,8 @@ def initialize_agents():
     
     return agents
 
-def main(ui=False):
+def main(feature_description, token = None):
+    config.set_token(token)
     import nltk
     nltk.download('punkt_tab')
     # 1. Initialize all specialist agents
@@ -41,10 +43,6 @@ def main(ui=False):
     specialist_agents = initialize_agents()
     
     # 2. Get the feature description (this could be from user input, a file, etc.)
-    feature_description = """
-    Feature Title: Mood-based personalized feed enhancements
-    Description: Adjust personalized feed recommendations based on inferred mood signals from emoji usage. This logic is soft-tuned using baseline behaviour and undergoes quiet testing in a non-user-impact way to collect analytics only.
-    """
     
     print(f"\nAnalyzing feature: {feature_description}")
     yield f"\nAnalyzing feature: {feature_description}"
@@ -73,4 +71,8 @@ def main(ui=False):
         yield f"  Related Regulations: {result['related_regulations']}"
 
 if __name__ == "__main__":
-    main()
+    feature = """
+Feature Title: Mood-based personalized feed enhancements
+Description: Adjust personalized feed recommendations based on inferred mood signals from emoji usage. This logic is soft-tuned using baseline behaviour and undergoes quiet testing in a non-user-impact way to collect analytics only.
+"""
+    main(feature)
