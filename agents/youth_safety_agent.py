@@ -1,5 +1,5 @@
 # agents/youth_safety_agent.py
-from .base_agent import BaseAgent, RetrievalResult
+from .base_agent import BaseAgent
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 import sys
@@ -11,37 +11,34 @@ from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 class YouthSafetyAgent(BaseAgent):
     def __init__(self, retriever):
         super().__init__("Youth Safety Agent", retriever)
-        # Define the prompt template here with explicit law guidance
+        # Prompt keeps the agent focused on youth-safety analysis and chunk citations
         self.prompt_template = ChatPromptTemplate.from_messages([
-            ("system", 
+            ("system",
                 """
-                    You are a meticulous youth safety and protection compliance officer. Your goal is to prevent harm to minors. Analyze the following feature description using ONLY the context provided from relevant laws.
-
-                    IMPORTANT INSTRUCTIONS:
-                    - You MUST only reference laws from this explicit list: {laws_list}
-                    - If a law is not in this list, you MUST NOT reference it, even if it appears in the context.
-                    - If the feature doesn't relate to any law in this list, return 'None' for Related Regulations.
-                    - If a feature could potentially harm minors or violate protections, you MUST flag it.
+                You are the Youth Safety domain expert.
+                Evaluate the feature's potential harm to minors using ONLY the provided law chunks.
+                Each chunk is labelled with a law name and chunk number.
+                Only reference laws from this list: {laws_list}.
+                Do not make final compliance decisions—simply report youth-safety implications.
                 """
             ),
-            ("human", 
+            ("human",
                 """
-                    **Feature Description to Analyze:**
-                    {feature_description}
+                Feature Description:
+                {feature_description}
 
-                    **Relevant Legal Context:**
-                    {context}
+                Legal Excerpts:
+                {context}
 
-                    **Your Task:**
-                    1. Determine if this feature requires geo-specific compliance logic due to youth safety concerns.
-                    2. If yes, list every country/region and cite the specific law and article that triggers the requirement (ONLY from the allowed list above).
-                    3. Provide clear, auditable reasoning for your decision.
-                    4. If no issues are found based on the context, state that.
+                Your Task:
+                1. Identify any youth-safety concerns evident in these excerpts.
+                2. Cite the jurisdiction and law name (from {laws_list}) and chunk number for each concern.
+                3. If no youth-safety obligations are found, state 'None'.
 
-                    Output your final analysis in the following structured format:
-                    - Requires Geo-Compliance Logic: [Yes/No/Unclear]
-                    - Reasoning: [Your reasoning here. MUST reference specific laws from the allowed list if applicable.]
-                    - Related Regulations: [List of laws from the allowed list or 'None']
+                Respond in this format:
+                - Youth-Safety Concern: [Yes/No/Unclear]
+                - Analysis: [reasoning with law name(s) and chunk number(s)]
+                - Related Regulations: [list of cited laws or 'None']
                 """
             )
         ])
@@ -63,9 +60,11 @@ class YouthSafetyAgent(BaseAgent):
         
         # Step 2: Retrieve relevant context and laws
         retrieval_result = self._retrieve_context(query, k=5)
-        context = retrieval_result.context
+        context = "\n\n".join(
+            f"{src.law} (Chunk {src.chunk_number}): {src.chunk_text}" for src in retrieval_result.sources
+        )
         laws_list = retrieval_result.laws
-        
+
         # Step 3: Fill in the prompt template with explicit laws list
         prompt = self.prompt_template.format_messages(
             feature_description=feature_description,
@@ -96,12 +95,12 @@ class YouthSafetyAgent(BaseAgent):
         }
         
         try:
-            for i, line in enumerate(lines):
-                if line.startswith("- Requires Geo-Compliance Logic:"):
-                    value = line.replace("- Requires Geo-Compliance Logic:", "").strip()
-                    result["requires_geo_compliance"] = value.lower() in ["yes", "true", "y"]
-                elif line.startswith("- Reasoning:"):
-                    result["reasoning"] = line.replace("- Reasoning:", "").strip()
+            for line in lines:
+                if line.startswith("- Youth-Safety Concern:"):
+                    value = line.replace("- Youth-Safety Concern:", "").strip()
+                    result["requires_geo_compliance"] = value.lower() in ["yes", "y"]
+                elif line.startswith("- Analysis:"):
+                    result["reasoning"] = line.replace("- Analysis:", "").strip()
                 elif line.startswith("- Related Regulations:"):
                     result["related_regulations"] = line.replace("- Related Regulations:", "").strip()
         except (IndexError, AttributeError):
