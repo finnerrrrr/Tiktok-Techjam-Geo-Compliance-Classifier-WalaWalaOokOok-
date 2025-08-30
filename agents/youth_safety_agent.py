@@ -2,6 +2,11 @@
 from .base_agent import BaseAgent, RetrievalResult
 from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+import config
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
 class YouthSafetyAgent(BaseAgent):
     def __init__(self, retriever):
@@ -43,7 +48,15 @@ class YouthSafetyAgent(BaseAgent):
 
     def analyze_feature(self, feature_description: str) -> dict:
         # Create the LLM object
-        llm = ChatOpenAI(model="gpt-3.5-turbo")
+        if (hf_token := config.get_token()):
+            llm = HuggingFaceEndpoint(
+                repo_id='openai/gpt-oss-20b',
+                huggingfacehub_api_token = hf_token
+            )
+            
+            llm = ChatHuggingFace(llm = llm, temperature = 0)
+        else:
+            llm = ChatOpenAI(model="gpt-3.5-turbo")
         
         # Step 1: Create an optimized query
         query = self._create_optimized_query(feature_description)
