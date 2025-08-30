@@ -1,44 +1,55 @@
 # utils/rag.py
 # -*- coding: utf-8 -*-
 """
-RAG (Retrieve–Augment) — hybrid search over an ALREADY-BUILT domain VDB.
+RAG utility for domain agents.
 
-This module assumes the *domain agent* has already:
-  • chunked its corpus (e.g., via your semanticchunker)
-  • computed document embeddings (L2-normalized) with a SentenceTransformer
-  • built a BM25Okapi index over chunk tokens
-  • stored these in a VDB object
+What this module does
+---------------------
+1) Build an in-memory VDB for a given *domain directory* (e.g. "utils/consumer_protection"):
+   - Iterates all `.txt` files (recursive).
+   - Uses `semanticchunker.get_chunks(path)` to produce (law_name, [chunks...]).
+   - Stores chunks with metadata {law_name, domain, source, chunk_number}.
+   - Creates BOTH:
+       • Sentence-Transformer embeddings (L2-normalized) for semantic similarity
+       • BM25 index over tokenized chunk text for lexical similarity
 
-What this module does:
-  • Accepts that VDB + a PREPPED query (string or dict from your QueryPrep agent)
-  • Runs hybrid search with FIXED weights:
-        hybrid = 0.60 * semantic_cosine + 0.40 * bm25_norm
-  • Returns ONLY the top_k chunks (default 5) as:
-        { "content": str, "relevance_score": float(0..10), "metadata": dict }
+2) Execute a **hybrid search** against the VDB using a *prepped query* (string or dict):
+       hybrid_score = 0.60 * semantic_cosine + 0.40 * bm25_norm
+   Returns ONLY the top-5 chunks as:
+       { "law_name": str, "chunk": str, "relevance_score": float, "domain": str }
 
-Expected VDB interface (duck-typed; no base class required):
-  vdb.chunks           -> List[chunk_items]; each chunk_item has either:
-                           - dict form: {"content": str, "metadata": dict}
-                           - attr form: .content: str, .metadata: dict
-  vdb.embeddings       -> np.ndarray of shape (N, d), L2-normalized
-  vdb.bm25             -> rank_bm25.BM25Okapi instance over the same chunks
-  vdb.embedder         -> (optional) a SentenceTransformer instance for query encoding
-  vdb.embedder_name    -> (optional) model name string for lazy loading if embedder not provided
+Notes
+-----
+- This module is pure Python with `sentence-transformers` and `rank_bm25`.
+- The "prepped query" can be a dict from your Query Prep agent:
+    {
+      "feature_title": "...",
+      "feature_description": "...",
+      "feature_requirements": "...",
+      "potential_impacts": "...",
+      "regions": "EU"
+    }
+  We combine these into one search string (light weighting).
 """
 
 from __future__ import annotations
 
-import math
+import os
 import re
+import math
+from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer
 
+# Import your semantic chunker (must live next to this file as utils/semanticchunker.py)
+from . import semanticchunker as sc
+
 
 # ---------------------------
-# Lightweight tokenizer for BM25
+# Small tokenizer for BM25
 # ---------------------------
 _TOKEN_RE = re.compile(r"[A-Za-z0-9]+", re.UNICODE)
 def _tok(text: str) -> List[str]:
@@ -46,113 +57,149 @@ def _tok(text: str) -> List[str]:
 
 
 # ---------------------------
-# Core Searcher
+# Chunk container
 # ---------------------------
-class RAGSearcher:
+@dataclass
+class _Chunk:
+    text: str
+    law_name: str
+    domain: str
+    source: str
+    chunk_number: int
+
+
+# ---------------------------
+# RAG Engine
+# ---------------------------
+class RAGEngine:
     """
-    Executes HYBRID search over a provided VDB:
-        hybrid = 0.60 * semantic_cosine + 0.40 * bm25_norm
+    Build & query a domain-specific VDB.
 
-    Returns ONLY the top_k chunks with human-friendly scores (0..10).
+    Usage:
+        engine = RAGEngine.from_domain_dir("utils/consumer_protection")
+        results = engine.search(prepped_query, top_k=5)
+        # results: List[{"law_name","chunk","relevance_score","domain"}]
     """
 
-    def __init__(self, semantic_weight: float = 0.60, bm25_weight: float = 0.40):
-        if not (0.0 <= semantic_weight <= 1.0 and 0.0 <= bm25_weight <= 1.0):
-            raise ValueError("Weights must be in [0,1].")
-        s = semantic_weight + bm25_weight
-        self.semantic_weight = semantic_weight / s
-        self.bm25_weight = bm25_weight / s
-        self._embedder_cache: Dict[str, SentenceTransformer] = {}
+    def __init__(self, model_name: str = "sentence-transformers/all-MiniLM-L6-v2"):
+        self.model_name = model_name
+        self.embedder = SentenceTransformer(model_name)
 
+        self.domain: str = ""                # e.g. "consumer_protection"
+        self.chunks: List[_Chunk] = []       # ordered list of chunks
+        self._embeddings: Optional[np.ndarray] = None   # (N, d), L2-normalized
+        self._bm25: Optional[BM25Okapi] = None
+        self._doc_tokens: List[List[str]] = []
+
+    # ---------- Build ----------
+    @classmethod
+    def from_domain_dir(cls, domain_dir: str, model_name: str = "sentence-transformers/all-MiniLM-L6-v2") -> "RAGEngine":
+        """
+        Build an engine by scanning a directory containing `.txt` files for a specific domain.
+        Recursively walks the directory tree.
+        """
+        engine = cls(model_name=model_name)
+        if not os.path.isdir(domain_dir):
+            raise FileNotFoundError(f"Domain directory not found: {domain_dir}")
+
+        engine.domain = os.path.basename(os.path.normpath(domain_dir)) or "general"
+
+        txt_files: List[str] = []
+        for root, _dirs, files in os.walk(domain_dir):
+            for fname in files:
+                if fname.lower().endswith(".txt"):
+                    txt_files.append(os.path.join(root, fname))
+
+        if not txt_files:
+            raise ValueError(f"No .txt files found in {domain_dir}")
+
+        # Chunk each file with semanticchunker
+        for path in txt_files:
+            try:
+                law_name, chunk_list = sc.get_chunks(path)  # returns (law_name, [chunk_str, ...])
+            except Exception as e:
+                print(f"[RAG] Skipping {os.path.basename(path)}: {e}")
+                continue
+            if not chunk_list:
+                continue
+
+            rel_source = os.path.relpath(path, start=domain_dir)
+            for i, chunk_text in enumerate(chunk_list):
+                engine.chunks.append(
+                    _Chunk(
+                        text=chunk_text,
+                        law_name=law_name or os.path.splitext(os.path.basename(path))[0],
+                        domain=engine.domain,
+                        source=rel_source,
+                        chunk_number=i,
+                    )
+                )
+
+        if not engine.chunks:
+            raise ValueError(f"semanticchunker produced 0 chunks in {domain_dir}")
+
+        # Build BM25 + embeddings
+        engine._doc_tokens = [_tok(c.text) for c in engine.chunks]
+        engine._bm25 = BM25Okapi(engine._doc_tokens)
+
+        texts = [c.text for c in engine.chunks]
+        emb = engine.embedder.encode(texts, normalize_embeddings=True, convert_to_numpy=True)
+        engine._embeddings = emb
+
+        return engine
+
+    # ---------- Query ----------
     def search(
         self,
-        vdb: Any,  # duck-typed VDB (see file docstring)
         prepped_query: Union[str, Dict[str, Any]],
         top_k: int = 5,
-        candidate_k_each: int = 50,
+        semantic_weight: float = 0.60,
+        bm25_weight: float = 0.40,
     ) -> List[Dict[str, Any]]:
         """
-        Args
-        ----
-        vdb: object with {chunks, embeddings, bm25, (embedder|embedder_name)}
-        prepped_query: string OR dict with fields like:
-            {
-              "feature_title": "...",
-              "feature_description": "...",
-              "feature_requirements": "...",
-              "potential_impacts": "...",
-              "regions": "EU"
-            }
-        top_k: number of results to return (default 5)
-        candidate_k_each: shortlist size per modality before fusion (default 50)
+        Hybrid search over the engine's VDB and return the top_k chunks.
 
-        Returns
-        -------
-        List[dict] where each item is:
+        Returns (each item):
             {
-              "content": str,
-              "relevance_score": float (0..10),
-              "metadata": dict
+              "law_name": str,
+              "chunk": str,
+              "relevance_score": float,   # 0..10 (hybrid)
+              "domain": str
             }
         """
-        # --- validate VDB surface ---
-        _ensure_has(vdb, "chunks")
-        _ensure_has(vdb, "embeddings")
-        _ensure_has(vdb, "bm25")
+        if not self.chunks or self._embeddings is None or self._bm25 is None:
+            raise RuntimeError("Engine not initialized. Use RAGEngine.from_domain_dir(...) first.")
 
-        if len(vdb.chunks) == 0:
-            return []
-
-        # 1) Build a single query string
+        # 1) Prepare query text from dict or string
         q_text = _combine_prepped_query(prepped_query)
 
-        # 2) Encode query using the SAME embedder
-        embedder = _resolve_embedder(vdb, self._embedder_cache)
-        q_vec = embedder.encode([q_text], normalize_embeddings=True, convert_to_numpy=True)[0]
+        # 2) Semantic & BM25 scores for all docs
+        q_vec = self.embedder.encode([q_text], normalize_embeddings=True, convert_to_numpy=True)[0]
+        sem_scores = (self._embeddings @ q_vec)  # cosine similarity in [-1,1], mostly >= 0 for MiniLM
+        bm25_scores = self._bm25.get_scores(_tok(q_text))  # arbitrary positive scale
 
-        # 3) Modality scores over ALL docs
-        emb: np.ndarray = vdb.embeddings
-        if not isinstance(emb, np.ndarray):
-            raise TypeError("vdb.embeddings must be a NumPy ndarray")
-        if emb.ndim != 2 or emb.shape[0] != len(vdb.chunks):
-            raise ValueError("vdb.embeddings shape must be (N, d) aligned with vdb.chunks")
+        # 3) Normalize each score vector to 0..1
+        sem_n = _minmax_norm(sem_scores.tolist())
+        bm25_n = _minmax_norm(bm25_scores.tolist())
 
-        sem_scores_all = (emb @ q_vec)  # cosine similarity
-        if not isinstance(vdb.bm25, BM25Okapi):
-            raise TypeError("vdb.bm25 must be a rank_bm25.BM25Okapi instance")
-        bm25_scores_all = vdb.bm25.get_scores(_tok(q_text))  # arbitrary positive scale
+        # 4) Hybrid score (fixed weights)
+        s = semantic_weight + bm25_weight
+        sw = semantic_weight / s
+        bw = bm25_weight / s
+        hybrid = [sw * s_ + bw * b_ for s_, b_ in zip(sem_n, bm25_n)]
 
-        # 4) Per-modality candidates
-        sem_rank = np.argsort(-sem_scores_all)
-        bm_rank = np.argsort(-bm25_scores_all)
-        sem_cands = sem_rank[: min(candidate_k_each, len(sem_rank))]
-        bm_cands = bm_rank[: min(candidate_k_each, len(bm_rank))]
-        cand_ids = list(dict.fromkeys(list(sem_cands) + list(bm_cands)))  # dedup, preserve order
-
-        # Edge case: fewer candidates than requested
-        if not cand_ids:
-            return []
-
-        # 5) Normalize scores within the candidate union
-        sem = [float(sem_scores_all[i]) for i in cand_ids]
-        bm = [float(bm25_scores_all[i]) for i in cand_ids]
-        sem_n = _minmax_norm(sem)  # 0..1
-        bm_n = _minmax_norm(bm)    # 0..1
-
-        # 6) Hybrid score
-        hybrid = [self.semantic_weight * s + self.bm25_weight * b for s, b in zip(sem_n, bm_n)]
+        # 5) Rank and select top_k
         order = np.argsort(-np.asarray(hybrid))[: top_k]
 
-        # 7) Build results
         results: List[Dict[str, Any]] = []
-        for pos in order:
-            idx = cand_ids[pos]
-            content, meta = _get_content_and_meta(vdb.chunks[idx])
-            score_0_10 = 10.0 * float(hybrid[pos])
+        for idx in order:
+            score_0_10 = 10.0 * float(hybrid[idx])  # human-readable scale
+            c = self.chunks[idx]
             results.append({
-                "content": content,
+                "law_name": c.law_name,
+                "chunk": c.text,
                 "relevance_score": round(score_0_10, 3),
-                "metadata": meta,
+                "domain": c.domain,
             })
 
         return results
@@ -161,35 +208,6 @@ class RAGSearcher:
 # ---------------------------
 # Helpers
 # ---------------------------
-def _ensure_has(obj: Any, attr: str) -> None:
-    if not hasattr(obj, attr):
-        raise AttributeError(f"VDB is missing required attribute: {attr}")
-
-def _get_content_and_meta(item: Any) -> Tuple[str, Dict[str, Any]]:
-    # Supports dict items or objects with .content/.metadata
-    if isinstance(item, dict):
-        content = item.get("content", "")
-        meta = item.get("metadata", {}) or {}
-        return content, meta
-    if hasattr(item, "content"):
-        content = getattr(item, "content")
-        meta = getattr(item, "metadata", {}) or {}
-        return content, meta
-    raise TypeError("Chunk item must be a dict with keys {'content','metadata'} or have attributes .content/.metadata")
-
-def _resolve_embedder(vdb: Any, cache: Dict[str, SentenceTransformer]) -> SentenceTransformer:
-    # Prefer an already-initialized embedder on the VDB
-    embedder = getattr(vdb, "embedder", None)
-    if isinstance(embedder, SentenceTransformer):
-        return embedder
-    # Else, load by name (and cache)
-    name = getattr(vdb, "embedder_name", None)
-    if not isinstance(name, str) or not name.strip():
-        raise AttributeError("VDB must provide either .embedder (SentenceTransformer) or .embedder_name (str)")
-    if name not in cache:
-        cache[name] = SentenceTransformer(name)
-    return cache[name]
-
 def _minmax_norm(values: List[float]) -> List[float]:
     if not values:
         return []
@@ -198,22 +216,24 @@ def _minmax_norm(values: List[float]) -> List[float]:
         return [0.5 for _ in values]
     return [(v - vmin) / (vmax - vmin) for v in values]
 
+
 def _combine_prepped_query(q: Union[str, Dict[str, Any]]) -> str:
     """
-    Converts a structured prepped query dict into a single search string.
-    If q is already a string, returns as-is.
-    Dict fields used (all optional): feature_title, feature_description,
-    feature_requirements, potential_impacts, regions.
+    Convert a structured 'prepped query' into a single search string.
+    Lightly prioritizes title/description and keeps a 'region:<X>' hint if present.
     """
     if isinstance(q, str):
         return q.strip()
 
+    def _safe(s: Any) -> str:
+        return str(s).strip() if isinstance(s, (str, int, float)) else ""
+
     parts: List[str] = []
-    title   = _safe_str(q.get("feature_title"))
-    desc    = _safe_str(q.get("feature_description"))
-    reqs    = _safe_str(q.get("feature_requirements"))
-    impacts = _safe_str(q.get("potential_impacts"))
-    regions = _safe_str(q.get("regions"))
+    title   = _safe(q.get("feature_title"))
+    desc    = _safe(q.get("feature_description"))
+    reqs    = _safe(q.get("feature_requirements"))
+    impacts = _safe(q.get("potential_impacts"))
+    regions = _safe(q.get("regions"))
 
     if title:   parts.append(title)
     if desc:    parts.append(desc)
@@ -222,6 +242,3 @@ def _combine_prepped_query(q: Union[str, Dict[str, Any]]) -> str:
     if regions: parts.append(f"region:{regions}")
 
     return " ".join(parts).strip()
-
-def _safe_str(x: Any) -> str:
-    return str(x).strip() if isinstance(x, (str, int, float)) else ""

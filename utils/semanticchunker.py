@@ -120,7 +120,7 @@ def get_chunks(doc, model=None):
 
     # if somehow empty, bail out early (caller can skip file)
     if not reconstruction_index:
-        return []
+        return law_name, []
 
     chunking_prompt = ChatPromptTemplate.from_template(
         """You are an expert at splitting text into smaller chunks without breaking context.
