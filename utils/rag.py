@@ -103,11 +103,14 @@ class HybridRetriever(BaseRetriever):
         k: int = 5,
         rrf_k: int = 60,
     ) -> None:
-        self.vectorstore = vectorstore
-        self.bm25_retriever = bm25_retriever
-        self.k = k
-        self.rrf_k = rrf_k
-
+        super().__init__(
+            vectorstore=vectorstore,
+            bm25_retriever=bm25_retriever,
+            k=k,
+            rrf_k=rrf_k,
+            **kwargs
+        )
+        
     def get_relevant_documents(
         self, query: str, *, filters: Optional[Dict[str, str]] = None
     ) -> List[Document]:
