@@ -1,5 +1,3 @@
-"""RAG utilities: indexing and hybrid retrieval for law documents."""
-
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.retrievers import BM25Retriever
@@ -91,20 +89,22 @@ def get_vector_db(persist_directory: str, embedding_model):
 
 class HybridRetriever(BaseRetriever):
     """Hybrid retriever using reciprocal rank fusion over dense and sparse results."""
+
     vectorstore: Chroma
     bm25_retriever: BM25Retriever
-    k: int
-    rrf_k: int
+    k: int = 5
+    rrf_k: int = 60
 
     class Config:
         arbitrary_types_allowed = True
-    
+
     def __init__(
         self,
         vectorstore: Chroma,
         bm25_retriever: BM25Retriever,
         k: int = 5,
         rrf_k: int = 60,
+        **data
     ) -> None:
         super().__init__(
             vectorstore=vectorstore,
@@ -113,7 +113,7 @@ class HybridRetriever(BaseRetriever):
             rrf_k=rrf_k,
             **data
         )
-        
+
     def get_relevant_documents(
         self, query: str, *, filters: Optional[Dict[str, str]] = None
     ) -> List[Document]:
@@ -142,7 +142,13 @@ class HybridRetriever(BaseRetriever):
 
         ranked_docs = sorted(scored.values(), key=lambda x: x[1], reverse=True)
         return [doc for doc, _ in ranked_docs[: self.k]]
+
+    # Add the async version if needed by LangChain
+    async def aget_relevant_documents(
+        self, query: str, *, filters: Optional[Dict[str, str]] = None
+    ) -> List[Document]:
+        """Async version of get_relevant_documents."""
+        return self.get_relevant_documents(query, filters=filters)
       
 # Use a good open-source embedding model
 embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-
