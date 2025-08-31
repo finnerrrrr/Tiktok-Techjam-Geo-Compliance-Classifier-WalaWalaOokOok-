@@ -1,0 +1,17 @@
+# venvs
+.venv/
+.venv*/
+venv/
+env/
+
+# python cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS junk
+.DS_Store
+
+# big artifacts (safeties)
+*.dylib
+*.so
