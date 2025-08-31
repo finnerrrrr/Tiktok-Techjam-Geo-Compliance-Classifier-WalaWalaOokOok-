@@ -28,7 +28,7 @@ Automated pipeline that classifies new product features for compliance with glob
 - Python Dotenv
 
 ## Assets
-- `assets/agent_workflow.png` – high level agent workflow diagram
+- `assets/atechjam_archi-1.png` – high level agent workflow diagram
 
 ## Datasets
 - Regulatory text snippets under `kb/` (e.g., GDPR, EU DSA, PDPA, youth safety laws)
