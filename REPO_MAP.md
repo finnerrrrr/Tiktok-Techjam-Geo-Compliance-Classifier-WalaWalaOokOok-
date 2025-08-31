@@ -1,24 +1,30 @@
 ├── .DS_Store
-├── .env
+├── .gitignore
 ├── README.md
 ├── REPO_MAP.md
 ├── __pycache__
-    └── config.cpython-310.pyc
+    ├── config.cpython-310.pyc
+    └── config.cpython-311.pyc
 ├── agents
+    ├── __pycache__
+    │   ├── aggregator_agent.cpython-311.pyc
+    │   ├── classifier_agent.cpython-311.pyc
+    │   ├── hitl_agent.cpython-311.pyc
+    │   ├── reranker_agent.cpython-311.pyc
+    │   ├── verifier_agent.cpython-311.pyc
+    │   ├── youth_safety_agent.cpython-311.pyc
+    │   └── youth_safety_agent.cpython-313.pyc
     ├── aggregator_agent.py
-    ├── ai_governance_agent.py
-    ├── base_agent.py
     ├── classifier_agent.py
     ├── consumer_protection_agent.py
-    ├── content_moderation_agent.py
     ├── data_privacy_agent.py
     ├── hitl_agent.py
-    ├── ip_protection_agent.py
     ├── reranker_agent.py
     ├── verifier_agent.py
     └── youth_safety_agent.py
 ├── assets
-    └── agent_workflow.png
+    ├── agent_workflow.png
+    └── techjam_archi-1.png
 ├── config.py
 ├── kb
     ├── consumer_protection
@@ -39,9 +45,13 @@
     │   ├── INDIA_Juvenile_2015.txt
     │   └── uae_wadeema_2024.txt
 ├── main.py
-├── pilot.py
+├── requirements.txt
 └── utils
-    ├── initvdb.py
+    ├── __pycache__
+        ├── inputqueryenhancer.cpython-311.pyc
+        ├── rag.cpython-311.pyc
+        ├── rag.cpython-313.pyc
+        └── semanticchunker.cpython-311.pyc
     ├── inputqueryenhancer.py
     ├── rag.py
     └── semanticchunker.py
@@ -49,80 +59,142 @@
 
 /.DS_Store:
 --------------------------------------------------------------------------------
-https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/c48023ec6689b4921d1266bc9bacbb33f20facdd/.DS_Store
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/.DS_Store
 
 
 --------------------------------------------------------------------------------
-/.env:
+/.gitignore:
 --------------------------------------------------------------------------------
-1 | OPENAI_API_KEY="API KEY HERE"
-2 | TF_ENABLE_ONEDNN_OPTS=0
+ 1 | # venvs
+ 2 | .venv/
+ 3 | .venv*/
+ 4 | venv/
+ 5 | env/
+ 6 | 
+ 7 | # python cache
+ 8 | __pycache__/
+ 9 | *.py[cod]
+10 | *.egg-info/
+11 | 
+12 | # OS junk
+13 | .DS_Store
+14 | 
+15 | # big artifacts (safeties)
+16 | *.dylib
+17 | *.so
 
 
 --------------------------------------------------------------------------------
 /README.md:
 --------------------------------------------------------------------------------
- 1 | 
- 2 | # GeoLogicClassifer123
- 3 | 
- 4 | ![Alt text](assets/agent_workflow.png)
+ 1 | # Geo Compliance Classifier
+ 2 | 
+ 3 | ## Problem Statement
+ 4 | Automated pipeline that classifies new product features for compliance with global regulations. Given a feature title and description, the system retrieves relevant legal texts, verifies jurisdictional alignment, and outputs a triage label (Yes/No/Uncertain) along with an audit trail.
  5 | 
- 6 | # Demo
- 7 | Find the demo using `openai/gpt-oss-20b` over at Hugging Face [here](https://huggingface.co/spaces/greenery-scenery/Geo-Compliance-Classifier). For `gpt-3.5-turbo` or other models, run code locally with OpenAI's key.
- 8 | 
- 9 | # From Guesswork to Governance — High-Level Agent Overview
-10 | 
-11 | ## Pipeline (at a glance)
-12 | Query Prep → Domain Agents → Reranker → Verifier → (HITL if needed) → Aggregator → Classifier → Output & Audit
-13 | 
-14 | ---
+ 6 | ## Features and Functionality
+ 7 | - **Agent pipeline:** query preparation, domain retrieval, reranking, verification, optional human-in-the-loop review, aggregation and classification.
+ 8 | - **Jurisdiction-aware retrieval:** domain agents search a curated knowledge base of regional regulations.
+ 9 | - **Transparent outputs:** final decisions include reasoning, cited regulations and an audit trail.
+10 | - **Demo:** run `python main.py` for a local example.
+11 | 
+12 | ## Development Tools
+13 | - Python 3.x
+14 | - Git & VS Code
 15 | 
-16 | ## 1) Query Prep Agent
-17 | **What:** Normalize feature artifacts and extract key signals.  
-18 | 
-19 | **Task:** Clean text, resolve codenames/jargon, detect intent & geo, add synonyms/triggers, emit an enriched query.
-20 | 
-21 | ## 2) Domain Agents (xN)
-22 | **What:** Per-domain retrieval (e.g., youth safety, reporting/CSAM, EU DSA).  
-23 | 
-24 | **Task:** Pull top candidate law chunks with citations and jurisdiction tags using hybrid lexical+semantic search.
-25 | 
-26 | ## 3) Reranker Agent
-27 | **What:** Advanced refinement layer for candidate chunks using hybrid scoring and diversity optimization.
-28 | 
-29 | **Task:** Re-rank the initial chunk set from the Domain Agent using a cross-encoder (e.g., ms-marco-MiniLM-L-6-v2) to compute pairwise query-chunk relevance scores, integrating these with weighted BM25 scores for lexical precision. Apply Maximal Marginal Relevance (MMR) with a tunable lambda (e.g., 0.7) to maximize diversity while preserving relevance, ensuring non-redundant coverage across domains and jurisdictions. Balance facets (e.g., legal domains like IP, Data Protection, or regions like EU, Brazil) using a weighted round-robin or clustering approach to select a top-5 subset. Log intermediate scores and diversity metrics for audit traceability.
-30 | 
-31 | ## 4) Verifier Agent
-32 | **What:** Robust validation engine transforming raw text into legally grounded evidence with confidence assessment.
-33 | 
-34 | **Task:** Evaluate the reranked chunks for geo-context alignment (e.g., matching query region to chunk jurisdiction) and citation applicability (e.g., verifying cited clauses like GDPR Art. 5). Compute a composite confidence score (0-10) based on weighted components: relevance to query (40%), internal consistency across chunks (30%), citation quality (20%), and facet diversity (10%). Identify supporting snippets (e.g., matching regulations) and conflicting ones (e.g., contradictory geo-rules), flagging low-confidence cases (<7.0 threshold) for HITL with detailed rationale. Maintain an audit log of scores and validation steps.
+16 | ## APIs
+17 | - OpenAI API for language models and embeddings
+18 | - Hugging Face models for reranking
+19 | 
+20 | ## Libraries
+21 | - LangChain & LangChain Community
+22 | - ChromaDB
+23 | - NLTK
+24 | - NumPy
+25 | - Pydantic
+26 | - Rank-BM25
+27 | - Requests
+28 | - Python Dotenv
+29 | 
+30 | ## Assets
+31 | - `assets/atechjam_archi-1.png` – high level agent workflow diagram
+32 | 
+33 | ## Datasets
+34 | - Regulatory text snippets under `kb/` (e.g., GDPR, EU DSA, PDPA, youth safety laws)
 35 | 
-36 | ## 5) HITL (Human-in-the-Loop)
-37 | **What:** Interactive expert review system for resolving complex or ambiguous cases with iterative feedback. 
+36 | ## Repository
+37 | This project is open sourced at: [Geo Compliance Classifier Repository](https://github.com/your-team/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-)
 38 | 
-39 | **Task:** Present the query, top-5 chunks, confidence score, and detailed validation breakdown to a human reviewer. Offer a suggested label (**YES/NO/UNCERTAIN**) based on Verifier output, allowing overrides with custom flags and rationales. Support chunk modification (e.g., adding new evidence or editing content/citations) and capture metadata (e.g., reviewer ID, timestamp). Feed back corrections to update chunk sets and labelled samples, enabling dynamic learning, with logs for each intervention to ensure compliance traceability.
-40 | 
-41 | ## 6) Aggregator Agent
-42 | **What:** Sophisticated context synthesizer and audit consolidator for downstream classification.  
-43 | 
-44 | **Task:** Merge the verified or HITL-updated chunks into a cohesive context bundle, deduplicating citations and resolving conflicts via a priority rule (e.g., latest regulation). Balance facets by optimizing representation across jurisdictions and domains using a weighted scoring model (e.g., prioritizing underrepresented regions), ensuring a compact yet comprehensive context. Compile a detailed audit trail integrating logs from prior agents (e.g., scores, HITL overrides) with timestamps and metadata, preparing a structured input for the Classifier.
-45 | 
-46 | ## 7) Classifier Agent
-47 | **What:** Decision engine generating triage labels with comprehensive traceability and self-assessment.
-48 | 
-49 | **Task:** Analyze the aggregated context and query to output a final flag (**YES/NO/UNCERTAIN**) using a few-shot learning approach with labelled samples (e.g., past feature classifications). Generate a detailed reasoning statement, linking specific regulations and citation IDs from chunks, with cross-references to supporting evidence. Compute a self-confidence score (0-1) based on agreement with labelled samples and chunk consistency. Maintain an audit trail with decision rationale, regulation mappings, and confidence metrics, flagging edge cases for further review. 
-50 | 
-51 | ## 8) Outputs & Audit Trail
-52 | **What:** Comprehensive submission artifacts and granular compliance evidence for regulatory scrutiny.
-53 | 
-54 | **Task:** Export decision outputs in structured CSV or JSONL format, including: feature ID, final flag, full reasoning text, linked regulation citations with clause numbers, sentence indices of supporting chunks, confidence scores, decision thresholds, and HITL override details. Include a detailed audit trail with timestamps, agent logs (e.g., Verifier scores, Classifier rationale), and provenance metadata (e.g., chunk sources, reviewer actions), ensuring full traceability and compliance with governance requirements.
-55 | 
+39 | ### Local Demo Setup
+40 | 1. Clone the repository
+41 |    ```bash
+42 |    git clone https://github.com/your-team/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-.git
+43 |    cd Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-
+44 |    ```
+45 | 2. Install dependencies
+46 |    ```bash
+47 |    pip install -r requirements.txt
+48 |    ```
+49 | 3. Provide an `OPENAI_API_KEY` in your environment
+50 | 4. Run the demo
+51 |    ```bash
+52 |    python main.py
+53 |    ```
+54 | 
 
 
 --------------------------------------------------------------------------------
 /__pycache__/config.cpython-310.pyc:
 --------------------------------------------------------------------------------
-https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/c48023ec6689b4921d1266bc9bacbb33f20facdd/__pycache__/config.cpython-310.pyc
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/__pycache__/config.cpython-310.pyc
+
+
+--------------------------------------------------------------------------------
+/__pycache__/config.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/__pycache__/config.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/aggregator_agent.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/aggregator_agent.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/classifier_agent.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/classifier_agent.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/hitl_agent.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/hitl_agent.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/reranker_agent.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/reranker_agent.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/verifier_agent.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/verifier_agent.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/youth_safety_agent.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/youth_safety_agent.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/agents/__pycache__/youth_safety_agent.cpython-313.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/agents/__pycache__/youth_safety_agent.cpython-313.pyc
 
 
 --------------------------------------------------------------------------------
@@ -149,87 +221,6 @@ https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier
 19 | 
 20 |         return aggregated
 21 | 
-
-
---------------------------------------------------------------------------------
-/agents/ai_governance_agent.py:
---------------------------------------------------------------------------------
-1 | from .base_agent import BaseAgent
-2 | 
-3 | class AIGovernanceAgent(BaseAgent):
-4 |     def __init__(self, vdb):
-5 |         super().__init__("AI Governance Agent", vdb)
-
-
---------------------------------------------------------------------------------
-/agents/base_agent.py:
---------------------------------------------------------------------------------
- 1 | # agents/base_agent.py
- 2 | from __future__ import annotations
- 3 | 
- 4 | from typing import Any, Dict, List
- 5 | from pydantic import BaseModel, Field
- 6 | import os, sys
- 7 | 
- 8 | # Make ../utils importable
- 9 | sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-10 | from utils.rag import RAGSearcher  # hybrid searcher (semantic + BM25)
-11 | 
-12 | 
-13 | class RetrievedChunk(BaseModel):
-14 |     """Single retrieval unit (matches rag.py output shape)."""
-15 |     content: str = Field(description="Chunk text")
-16 |     relevance_score: float = Field(description="0..10 hybrid score")
-17 |     metadata: Dict[str, Any] = Field(
-18 |         default_factory=dict,
-19 |         description="Chunk metadata from the VDB (e.g., law, source, chunk_number, jurisdiction)"
-20 |     )
-21 | 
-22 | 
-23 | class BaseAgent:
-24 |     """
-25 |     Minimal domain agent:
-26 |       • holds a domain-specific VDB
-27 |       • runs hybrid RAG via RAGSearcher
-28 |       • returns top-k chunks (no judgments)
-29 |     """
-30 | 
-31 |     def __init__(self, name: str, vdb: Any, semantic_weight: float = 0.60, bm25_weight: float = 0.40):
-32 |         """
-33 |         Args:
-34 |           name: Display name, e.g. "Youth Safety Agent"
-35 |           vdb:  Duck-typed vector DB with:
-36 |                 - chunks (list[dict|obj{content, metadata}])
-37 |                 - embeddings (np.ndarray, L2-normalized)
-38 |                 - bm25 (rank_bm25.BM25Okapi)
-39 |                 - embedder or embedder_name (SentenceTransformer or str)
-40 |         """
-41 |         self.name = name
-42 |         self.vdb = vdb
-43 |         self.searcher = RAGSearcher(semantic_weight=semantic_weight, bm25_weight=bm25_weight)
-44 | 
-45 |     def analyze_feature(
-46 |         self,
-47 |         prepped_query: str | Dict[str, Any],
-48 |         top_k: int = 5,
-49 |         candidate_k_each: int = 50,
-50 |     ) -> List[Dict[str, Any]]:
-51 |         """
-52 |         Perform hybrid retrieval and return k most relevant chunks.
-53 | 
-54 |         Returns a list of dicts (directly from RAGSearcher):
-55 |           [
-56 |             {"content": str, "relevance_score": float, "metadata": dict},
-57 |             ...
-58 |           ]
-59 |         """
-60 |         results = self.searcher.search(
-61 |             vdb=self.vdb,
-62 |             prepped_query=prepped_query,
-63 |             top_k=top_k,
-64 |             candidate_k_each=candidate_k_each,
-65 |         )
-66 |         return results
 
 
 --------------------------------------------------------------------------------
@@ -501,31 +492,91 @@ https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier
 --------------------------------------------------------------------------------
 /agents/consumer_protection_agent.py:
 --------------------------------------------------------------------------------
-1 | from .base_agent import BaseAgent
-2 | 
-3 | class ConsumerProtectionAgent(BaseAgent):
-4 |     def __init__(self, vdb):
-5 |         super().__init__("Consumer Protection Agent", vdb)
-
-
---------------------------------------------------------------------------------
-/agents/content_moderation_agent.py:
---------------------------------------------------------------------------------
-1 | from .base_agent import BaseAgent
-2 | 
-3 | class ContentModerationAgent(BaseAgent):
-4 |     def __init__(self, vdb):
-5 |         super().__init__("Content Moderation Agent", vdb)
+ 1 | # agents/youth_safety_agent.py
+ 2 | # -*- coding: utf-8 -*-
+ 3 | """
+ 4 | Simple YouthSafetyAgent
+ 5 | 
+ 6 | - Points RAG to the Youth Safety corpus directory (default: "kb/youth_safety").
+ 7 | - Accepts a *prepped query* (string or dict) from the Query Prep agent.
+ 8 | - Calls RAG to run a fixed-weight hybrid search and returns the top-k chunks.
+ 9 | 
+10 | Each returned item has:
+11 | {
+12 |   "law_name": str,
+13 |   "chunk": str,
+14 |   "relevance_score": float,  # 0..10
+15 |   "domain": str              # e.g., "youth_safety"
+16 | }
+17 | """
+18 | 
+19 | from typing import Any, Dict, List, Union
+20 | from utils.rag import RAGEngine
+21 | 
+22 | 
+23 | class ConsumerProtectionAgent:
+24 |     def __init__(
+25 |         self,
+26 |         domain_dir: str = "kb/consumer_protection",
+27 |         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+28 |         top_k: int = 5,
+29 |     ) -> None:
+30 |         self.name = "Consumer Protection Agent"
+31 |         self.top_k = top_k
+32 |         # Build the domain-specific RAG engine once (chunks, embeddings, BM25)
+33 |         self._engine = RAGEngine.from_domain_dir(domain_dir, model_name=model_name)
+34 | 
+35 |     def analyze_feature(self, prepped_query: Union[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+36 |         """
+37 |         Pass the prepped query straight to RAG and return the top-k results.
+38 |         """
+39 |         return self._engine.search(prepped_query, top_k=self.top_k)
+40 | 
 
 
 --------------------------------------------------------------------------------
 /agents/data_privacy_agent.py:
 --------------------------------------------------------------------------------
-1 | from .base_agent import BaseAgent
-2 | 
-3 | class DataPrivacyAgent(BaseAgent):
-4 |     def __init__(self, vdb):
-5 |         super().__init__("Data Privacy Agent", vdb)
+ 1 | # agents/youth_safety_agent.py
+ 2 | # -*- coding: utf-8 -*-
+ 3 | """
+ 4 | Simple YouthSafetyAgent
+ 5 | 
+ 6 | - Points RAG to the Youth Safety corpus directory (default: "kb/youth_safety").
+ 7 | - Accepts a *prepped query* (string or dict) from the Query Prep agent.
+ 8 | - Calls RAG to run a fixed-weight hybrid search and returns the top-k chunks.
+ 9 | 
+10 | Each returned item has:
+11 | {
+12 |   "law_name": str,
+13 |   "chunk": str,
+14 |   "relevance_score": float,  # 0..10
+15 |   "domain": str              # e.g., "youth_safety"
+16 | }
+17 | """
+18 | 
+19 | from typing import Any, Dict, List, Union
+20 | from utils.rag import RAGEngine
+21 | 
+22 | 
+23 | class DataPrivacyAgent:
+24 |     def __init__(
+25 |         self,
+26 |         domain_dir: str = "kb/data_privacy",
+27 |         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
+28 |         top_k: int = 5,
+29 |     ) -> None:
+30 |         self.name = "Data Privacy Agent"
+31 |         self.top_k = top_k
+32 |         # Build the domain-specific RAG engine once (chunks, embeddings, BM25)
+33 |         self._engine = RAGEngine.from_domain_dir(domain_dir, model_name=model_name)
+34 | 
+35 |     def analyze_feature(self, prepped_query: Union[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+36 |         """
+37 |         Pass the prepped query straight to RAG and return the top-k results.
+38 |         """
+39 |         return self._engine.search(prepped_query, top_k=self.top_k)
+40 | 
 
 
 --------------------------------------------------------------------------------
@@ -618,16 +669,6 @@ https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier
 85 | 
 86 |         return feedback
 87 | 
-
-
---------------------------------------------------------------------------------
-/agents/ip_protection_agent.py:
---------------------------------------------------------------------------------
-1 | from .base_agent import BaseAgent
-2 | 
-3 | class IPProtectionAgent(BaseAgent):
-4 |     def __init__(self, vdb):
-5 |         super().__init__("IP Protection Agent", vdb)
 
 
 --------------------------------------------------------------------------------
@@ -878,7 +919,13 @@ https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier
 --------------------------------------------------------------------------------
 /assets/agent_workflow.png:
 --------------------------------------------------------------------------------
-https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/c48023ec6689b4921d1266bc9bacbb33f20facdd/assets/agent_workflow.png
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/assets/agent_workflow.png
+
+
+--------------------------------------------------------------------------------
+/assets/techjam_archi-1.png:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/assets/techjam_archi-1.png
 
 
 --------------------------------------------------------------------------------
@@ -2482,11 +2529,11 @@ https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier
  20 | from typing import List, Type
  21 | 
  22 | from agents.youth_safety_agent import YouthSafetyAgent
- 23 | from agents.data_privacy_agent import DataPrivacyAgent
- 24 | from agents.content_moderation_agent import ContentModerationAgent
- 25 | from agents.consumer_protection_agent import ConsumerProtectionAgent
- 26 | from agents.ai_governance_agent import AIGovernanceAgent
- 27 | from agents.ip_protection_agent import IPProtectionAgent
+ 23 | # from agents.data_privacy_agent import DataPrivacyAgent
+ 24 | # from agents.content_moderation_agent import ContentModerationAgent
+ 25 | # from agents.consumer_protection_agent import ConsumerProtectionAgent
+ 26 | # from agents.ai_governance_agent import AIGovernanceAgent
+ 27 | # from agents.ip_protection_agent import IPProtectionAgent
  28 | from agents.reranker_agent import RerankerAgent
  29 | from agents.verifier_agent import VerifierAgent
  30 | from agents.hitl_agent import HITLAgent
@@ -2496,233 +2543,120 @@ https://raw.githubusercontent.com/tzs69/Tiktok-Techjam-Geo-Compliance-Classifier
  34 | from utils.inputqueryenhancer import enhance_query
  35 | 
  36 | 
- 37 | def main(feature_title: str, feature_description: str) -> None:
+ 37 | def main(feature_title: str, feature_description: str):
  38 |     """Run the full compliance workflow."""
  39 |     # 1. Query preparation
  40 |     prepped_query = enhance_query(feature_title, feature_description)
  41 |     print("Prepared query:\n", prepped_query)
- 42 | 
- 43 |     # 2. Initialise domain agents
- 44 |     # Assumes each agent handles its own VDB initialisation internally.
- 45 |     domain_agent_classes: List[Type] = [
- 46 |         YouthSafetyAgent,
- 47 |         DataPrivacyAgent,
- 48 |         ContentModerationAgent,
- 49 |         ConsumerProtectionAgent,
- 50 |         AIGovernanceAgent,
- 51 |         IPProtectionAgent,
- 52 |     ]
- 53 |     domain_agents = [cls() for cls in domain_agent_classes]
- 54 | 
- 55 |     # 3. Retrieve chunks from all domain agents
- 56 |     all_chunks = []
- 57 |     for agent in domain_agents:
- 58 |         chunks = agent.analyze_feature(prepped_query)
- 59 |         # Expect each agent to return: List[{"content", "relevance_score", "citation"?, "domain_tag"?}]
- 60 |         print(f"{agent.name} returned {len(chunks)} chunks")
- 61 |         all_chunks.extend(chunks)
- 62 | 
- 63 |     # 4. Rerank and select diverse set of chunks
- 64 |     reranker = RerankerAgent()
- 65 |     selected_chunks = asyncio.run(reranker.process(all_chunks, prepped_query))
- 66 |     print(f"Reranker selected {len(selected_chunks)} chunks")
- 67 | 
- 68 |     # 5. Verification for confidence score
- 69 |     verifier = VerifierAgent()
- 70 |     verification = verifier.process(selected_chunks, prepped_query)
- 71 |     print(f"Verification confidence: {verification['confidence']:.2f}")
- 72 | 
- 73 |     # 6. Human-in-the-loop override if confidence low
- 74 |     hitl_feedback = None
- 75 |     if verification["escalate"]:
- 76 |         hitl_feedback = HITLAgent().process(verification, prepped_query)
- 77 | 
- 78 |     # 7. Aggregation of context for classification
- 79 |     aggregator = AggregatorAgent()
- 80 |     aggregated = aggregator.process(verification["chunks"], hitl_feedback)
- 81 | 
- 82 |     # 8. Final classification
- 83 |     classifier = ClassifierAgent()
- 84 |     result = classifier.classify(aggregated, prepped_query)
- 85 | 
- 86 |     # 9. Output results and audit trail
- 87 |     print("\n=== FINAL OUTPUT ===")
- 88 |     print(f"Flag: {result['flag']}")
- 89 |     print(f"Reasoning: {result['reasoning']}")
- 90 |     print(f"Regulations: {result['regulations']}")
- 91 |     print("Audit trail:")
- 92 |     for entry in result["audit_trail"]:
- 93 |         print(f"- {entry}")
- 94 | 
- 95 | 
- 96 | if __name__ == "__main__":
- 97 |     # Example invocation; replace with real feature details
- 98 |     main(
- 99 |         feature_title="Sample feature",
-100 |         feature_description="This is a placeholder description for the workflow run.",
-101 |     )
-102 | 
-
-
---------------------------------------------------------------------------------
-/pilot.py:
---------------------------------------------------------------------------------
-  1 | # pilot.py
-  2 | from agents.youth_safety_agent import YouthSafetyAgent
-  3 | from agents.data_privacy_agent import DataPrivacyAgent
-  4 | from agents.content_moderation_agent import ContentModerationAgent
-  5 | from agents.consumer_protection_agent import ConsumerProtectionAgent
-  6 | from agents.ai_governance_agent import AIGovernanceAgent
-  7 | from agents.ip_protection_agent import IPProtectionAgent
-  8 | from agents.classifier_agent import ClassifierAgent
-  9 | 
- 10 | from utils.rag import get_vector_db, embedding_model, HybridRetriever
- 11 | from utils.inputqueryenhancer import enhance_query
- 12 | 
- 13 | import os
- 14 | import config
- 15 | 
- 16 | # Helper function for DRY initialization
- 17 | def load_agent(agent_class, kb_name: str):
- 18 |     db_path = f"./kb/{kb_name}_chromadb"
- 19 |     kb_path = f"./kb/{kb_name}"
- 20 | 
- 21 |     # Create or load vector DB
- 22 |     if not os.path.exists(db_path):
- 23 |         from utils.rag import create_vector_db_from_dir
- 24 |         vectordb, bm25 = create_vector_db_from_dir(kb_path, db_path, embedding_model)
- 25 |     else:
- 26 |         vectordb, bm25 = get_vector_db(db_path, embedding_model)
- 27 | 
- 28 |     retriever = HybridRetriever(vectordb, bm25, k=5)
- 29 |     return agent_class(retriever)
- 30 | 
- 31 | # Initialize all agents with their respective knowledge bases
- 32 | def initialize_agents():
- 33 |     agents = []
- 34 | 
- 35 |     agents.append(load_agent(YouthSafetyAgent, "youth_safety"))
- 36 |     agents.append(load_agent(DataPrivacyAgent, "data_privacy"))
- 37 |     agents.append(load_agent(ContentModerationAgent, "content_moderation"))
- 38 |     agents.append(load_agent(ConsumerProtectionAgent, "consumer_protection"))
- 39 |     agents.append(load_agent(AIGovernanceAgent, "ai_governance"))
- 40 |     agents.append(load_agent(IPProtectionAgent, "ip_protection"))
- 41 | 
- 42 |     return agents
+ 42 |     yield "Prepared query:\n" + prepped_query
  43 | 
- 44 | def main(feature_title, feature_description, token = None):
- 45 |     # 1. Enrich input feature query
- 46 |     feature_summary = enhance_query(feature_title, feature_description)
- 47 |     config.set_token(token)
- 48 |     import nltk
- 49 |     nltk.download('punkt_tab')
- 50 |     # 1. Initialize all specialist agents
- 51 |     print("Initializing agents and loading knowledge bases...")
- 52 |     yield "Initializing agents and loading knowledge bases..."
- 53 |     specialist_agents = initialize_agents()
- 54 |     
- 55 |     # 2. Get the feature description
- 56 |     print(f"\nAnalyzing feature: {feature_summary.title}")
- 57 |     yield f"\nAnalyzing feature: {feature_summary.title}"
- 58 |     
- 59 |     # 3. Send the feature to EVERY agent for analysis
- 60 |     all_results = {}
- 61 |     for agent in specialist_agents:
- 62 |         print(f"\n--- Consulting {agent.name} ---")
- 63 |         yield f"\n--- Consulting {agent.name} ---"
- 64 |         
- 65 |         result = agent.analyze_feature(feature_summary)
- 66 | 
- 67 |         all_results[agent.name] = result
- 68 |         print(f"Result: {result}")
- 69 |         yield f"Result: {result}"
- 70 |     
- 71 |     # 4. Consolidate and present the final results
- 72 |     opinions = ''
- 73 |     print("\n=== FINAL COMPLIANCE ASSESSMENT ===")
- 74 |     yield "\n=== FINAL COMPLIANCE ASSESSMENT ==="
- 75 |     for agent_name, result in all_results.items():
- 76 |         print(f"\n{agent_name}:")
- 77 |         print(f"  Requires Geo-Compliance Logic: {result['requires_geo_compliance']}")
- 78 |         print(f"  Reasoning: {result['reasoning']}")
- 79 |         print(f"  Related Regulations: {result['related_regulations']}")
- 80 |         yield f"\n{agent_name}:"
- 81 |         yield f"  Requires Geo-Compliance Logic: {result['requires_geo_compliance']}"
- 82 |         yield f"  Reasoning: {result['reasoning']}"
- 83 |         yield f"  Related Regulations: {result['related_regulations']}"
- 84 |         opinion = \
- 85 | f"""
- 86 | 
- 87 | {agent_name}:
- 88 | Requires Geo-Compliance Logic: {result['requires_geo_compliance']}
- 89 | Reasoning: {result['reasoning']}
- 90 | Related Regulations: {result['related_regulations']}
- 91 | """
- 92 |         opinions += opinion
- 93 |     
- 94 |     print(opinions)
- 95 |     # classifier
- 96 | 
- 97 | if __name__ == "__main__":
- 98 |     feature = """
- 99 | Feature Title: Mood-based personalized feed enhancements
-100 | Description: Adjust personalized feed recommendations based on inferred mood signals from emoji usage. This logic is soft-tuned using baseline behaviour and undergoes quiet testing in a non-user-impact way to collect analytics only.
-101 | """
-102 |     main(feature)
-103 | 
+ 44 |     # 2. Initialise domain agents
+ 45 |     # Assumes each agent handles its own VDB initialisation internally.
+ 46 |     domain_agent_classes: List[Type] = [
+ 47 |         YouthSafetyAgent
+ 48 |         # DataPrivacyAgent,
+ 49 |         # ContentModerationAgent,
+ 50 |         # ConsumerProtectionAgent,
+ 51 |         # AIGovernanceAgent,
+ 52 |         # IPProtectionAgent,
+ 53 |     ]
+ 54 |     domain_agents = [cls() for cls in domain_agent_classes]
+ 55 | 
+ 56 |     # 3. Retrieve chunks from all domain agents
+ 57 |     all_chunks = []
+ 58 |     for agent in domain_agents:
+ 59 |         chunks = agent.analyze_feature(prepped_query)
+ 60 |         # Expect each agent to return: List[{"content", "relevance_score", "citation"?, "domain_tag"?}]
+ 61 |         print(f"{agent.name} returned {len(chunks)} chunks")
+ 62 |         yield f"{agent.name} returned {len(chunks)} chunks"
+ 63 |         all_chunks.extend(chunks)
+ 64 | 
+ 65 |     # 4. Rerank and select diverse set of chunks
+ 66 |     reranker = RerankerAgent()
+ 67 |     selected_chunks = asyncio.run(reranker.process(all_chunks, prepped_query))
+ 68 |     print(f"Reranker selected {len(selected_chunks)} chunks")
+ 69 |     yield f"Reranker selected {len(selected_chunks)} chunks"
+ 70 | 
+ 71 |     # 5. Verification for confidence score
+ 72 |     verifier = VerifierAgent()
+ 73 |     verification = verifier.process(selected_chunks, prepped_query)
+ 74 |     print(f"Verification confidence: {verification['confidence']:.2f}")
+ 75 |     yield f"Verification confidence: {verification['confidence']:.2f}"
+ 76 | 
+ 77 |     # 6. Human-in-the-loop override if confidence low
+ 78 |     hitl_feedback = None
+ 79 |     if verification["escalate"]:
+ 80 |         hitl_feedback = HITLAgent().process(verification, prepped_query)
+ 81 | 
+ 82 |     # 7. Aggregation of context for classification
+ 83 |     aggregator = AggregatorAgent()
+ 84 |     aggregated = aggregator.process(verification["chunks"], hitl_feedback)
+ 85 | 
+ 86 |     # 8. Final classification
+ 87 |     classifier = ClassifierAgent()
+ 88 |     result = asyncio.run(classifier.classify(aggregated, prepped_query))
+ 89 | 
+ 90 |     # 9. Output results and audit trail
+ 91 |     print("\n=== FINAL OUTPUT ===")
+ 92 |     print(f"Flag: {result['flag']}")
+ 93 |     print(f"Reasoning: {result['reasoning']}")
+ 94 |     print(f"Regulations: {result['regulations']}")
+ 95 |     print("Audit trail:")
+ 96 |     for entry in result["audit_trail"]:
+ 97 |         print(f"- {entry}")
+ 98 |         yield f"- {entry}"
+ 99 | 
+100 | 
+101 | if __name__ == "__main__":
+102 |     # Example invocation; replace with real feature details
+103 |     main(
+104 |         feature_title="Content visibility lock with NSP for EU DSA",
+105 |         feature_description="To meet the transparency expectations of the EU Digital Services Act..."
+106 |     )
+107 | 
 
 
 --------------------------------------------------------------------------------
-/utils/initvdb.py:
+/requirements.txt:
 --------------------------------------------------------------------------------
- 1 | from langchain_community.vectorstores import Chroma
- 2 | from langchain_community.embeddings import HuggingFaceEmbeddings
- 3 | from langchain.schema import Document
- 4 | import os
- 5 | from . import semanticchunker as sc
- 6 | 
- 7 | def create_vector_db_from_dir(directory_path, persist_directory, embedding_model):
- 8 |     documents = []
- 9 |     for filename in os.listdir(directory_path):
-10 |         if not filename.endswith(".txt"):
-11 |             continue
-12 |         filepath = os.path.join(directory_path, filename)
-13 |         try:
-14 |             law_name, chunked_doc = sc.get_chunks(filepath)  # List[str]
-15 |         except Exception as e:
-16 |             print(f"[RAG] Skipping {filename}: {e}")
-17 |             continue
-18 | 
-19 |         if not chunked_doc:
-20 |             print(f"[RAG] Skipping {filename}: produced 0 chunks")
-21 |             continue
-22 | 
-23 |         for chunk in chunked_doc:
-24 |             documents.append(
-25 |                 Document(page_content=chunk, metadata={"citation":law_name})
-26 |             )
-27 | 
-28 |     if not documents:
-29 |         raise ValueError(f"No usable .txt files found in {directory_path}")
-30 | 
-31 |     vectordb = Chroma.from_documents(
-32 |         documents=documents,
-33 |         embedding=embedding_model,
-34 |         persist_directory=persist_directory
-35 |     )
-36 |     vectordb.persist()
-37 |     return vectordb
-38 | 
-39 | 
-40 | def get_vector_db(persist_directory, embedding_model):
-41 |     """Loads an existing Chroma vector database."""
-42 |     vectordb = Chroma(persist_directory=persist_directory, embedding_function=embedding_model)
-43 |     return vectordb
-44 | 
-45 | # Use a good open-source embedding model
-46 | embedding_model = HuggingFaceEmbeddings(
-47 |     model_name="sentence-transformers/all-MiniLM-L6-v2"
-48 | )
+ 1 | chromadb
+ 2 | langchain
+ 3 | langchain-core
+ 4 | langchain-community
+ 5 | langchain-huggingface
+ 6 | langchain-openai
+ 7 | nltk
+ 8 | numpy
+ 9 | openai
+10 | pydantic
+11 | python-dotenv
+12 | rank-bm25
+13 | requests
+14 | # sentence-transformers
+
+
+--------------------------------------------------------------------------------
+/utils/__pycache__/inputqueryenhancer.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/utils/__pycache__/inputqueryenhancer.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/utils/__pycache__/rag.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/utils/__pycache__/rag.cpython-311.pyc
+
+
+--------------------------------------------------------------------------------
+/utils/__pycache__/rag.cpython-313.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/utils/__pycache__/rag.cpython-313.pyc
+
+
+--------------------------------------------------------------------------------
+/utils/__pycache__/semanticchunker.cpython-311.pyc:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/finnerrrrr/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-/124c2ba0a405c212bed7646e88ff39925ca85feb/utils/__pycache__/semanticchunker.cpython-311.pyc
 
 
 --------------------------------------------------------------------------------
