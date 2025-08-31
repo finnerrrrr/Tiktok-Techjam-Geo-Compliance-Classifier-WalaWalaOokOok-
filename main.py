@@ -20,11 +20,11 @@ import asyncio
 from typing import List, Type
 
 from agents.youth_safety_agent import YouthSafetyAgent
-from agents.data_privacy_agent import DataPrivacyAgent
-from agents.content_moderation_agent import ContentModerationAgent
-from agents.consumer_protection_agent import ConsumerProtectionAgent
-from agents.ai_governance_agent import AIGovernanceAgent
-from agents.ip_protection_agent import IPProtectionAgent
+# from agents.data_privacy_agent import DataPrivacyAgent
+# from agents.content_moderation_agent import ContentModerationAgent
+# from agents.consumer_protection_agent import ConsumerProtectionAgent
+# from agents.ai_governance_agent import AIGovernanceAgent
+# from agents.ip_protection_agent import IPProtectionAgent
 from agents.reranker_agent import RerankerAgent
 from agents.verifier_agent import VerifierAgent
 from agents.hitl_agent import HITLAgent
@@ -43,12 +43,12 @@ def main(feature_title: str, feature_description: str) -> None:
     # 2. Initialise domain agents
     # Assumes each agent handles its own VDB initialisation internally.
     domain_agent_classes: List[Type] = [
-        YouthSafetyAgent,
-        DataPrivacyAgent,
-        ContentModerationAgent,
-        ConsumerProtectionAgent,
-        AIGovernanceAgent,
-        IPProtectionAgent,
+        YouthSafetyAgent
+        # DataPrivacyAgent,
+        # ContentModerationAgent,
+        # ConsumerProtectionAgent,
+        # AIGovernanceAgent,
+        # IPProtectionAgent,
     ]
     domain_agents = [cls() for cls in domain_agent_classes]
 
@@ -81,7 +81,7 @@ def main(feature_title: str, feature_description: str) -> None:
 
     # 8. Final classification
     classifier = ClassifierAgent()
-    result = classifier.classify(aggregated, prepped_query)
+    result = asyncio.run(classifier.classify(aggregated, prepped_query))
 
     # 9. Output results and audit trail
     print("\n=== FINAL OUTPUT ===")
@@ -96,6 +96,6 @@ def main(feature_title: str, feature_description: str) -> None:
 if __name__ == "__main__":
     # Example invocation; replace with real feature details
     main(
-        feature_title="Sample feature",
-        feature_description="This is a placeholder description for the workflow run.",
+        feature_title="Content visibility lock with NSP for EU DSA",
+        feature_description="To meet the transparency expectations of the EU Digital Services Act..."
     )

@@ -1,0 +1,14 @@
+chromadb
+langchain
+langchain-core
+langchain-community
+langchain-huggingface
+langchain-openai
+nltk
+numpy
+openai
+pydantic
+python-dotenv
+rank-bm25
+requests
+# sentence-transformers
