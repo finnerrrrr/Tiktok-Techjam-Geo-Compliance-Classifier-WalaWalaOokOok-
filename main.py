@@ -34,11 +34,12 @@ from agents.classifier_agent import ClassifierAgent
 from utils.inputqueryenhancer import enhance_query
 
 
-def main(feature_title: str, feature_description: str) -> None:
+def main(feature_title: str, feature_description: str):
     """Run the full compliance workflow."""
     # 1. Query preparation
     prepped_query = enhance_query(feature_title, feature_description)
     print("Prepared query:\n", prepped_query)
+    yield "Prepared query:\n" + prepped_query
 
     # 2. Initialise domain agents
     # Assumes each agent handles its own VDB initialisation internally.
@@ -58,17 +59,20 @@ def main(feature_title: str, feature_description: str) -> None:
         chunks = agent.analyze_feature(prepped_query)
         # Expect each agent to return: List[{"content", "relevance_score", "citation"?, "domain_tag"?}]
         print(f"{agent.name} returned {len(chunks)} chunks")
+        yield f"{agent.name} returned {len(chunks)} chunks"
         all_chunks.extend(chunks)
 
     # 4. Rerank and select diverse set of chunks
     reranker = RerankerAgent()
     selected_chunks = asyncio.run(reranker.process(all_chunks, prepped_query))
     print(f"Reranker selected {len(selected_chunks)} chunks")
+    yield f"Reranker selected {len(selected_chunks)} chunks"
 
     # 5. Verification for confidence score
     verifier = VerifierAgent()
     verification = verifier.process(selected_chunks, prepped_query)
     print(f"Verification confidence: {verification['confidence']:.2f}")
+    yield f"Verification confidence: {verification['confidence']:.2f}"
 
     # 6. Human-in-the-loop override if confidence low
     hitl_feedback = None
@@ -91,6 +95,7 @@ def main(feature_title: str, feature_description: str) -> None:
     print("Audit trail:")
     for entry in result["audit_trail"]:
         print(f"- {entry}")
+        yield f"- {entry}"
 
 
 if __name__ == "__main__":
