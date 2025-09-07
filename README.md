@@ -9,7 +9,7 @@ Automated pipeline that classifies new product features for compliance with glob
 - **Transparent outputs:** final decisions include reasoning, cited regulations and an audit trail.
 - **Demo:** run `python main.py` for a local example.
 
-![Alt text](assets/atechjam_archi-1.png)
+![Alt text](assets/techjam_archi-1.png)
 
 ## Development Tools
 - Python 3.x
@@ -30,7 +30,7 @@ Automated pipeline that classifies new product features for compliance with glob
 - Python Dotenv
 
 ## Assets
-- `assets/atechjam_archi-1.png` – high level agent workflow diagram
+- `assets/techjam_archi-1.png` – high level agent workflow diagram
 
 ## Datasets
 - Regulatory text snippets under `kb/` (e.g., GDPR, EU DSA, PDPA, youth safety laws)
