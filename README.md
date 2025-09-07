@@ -9,6 +9,8 @@ Automated pipeline that classifies new product features for compliance with glob
 - **Transparent outputs:** final decisions include reasoning, cited regulations and an audit trail.
 - **Demo:** run `python main.py` for a local example.
 
+![Alt text](assets/atechjam_archi-1.png)
+
 ## Development Tools
 - Python 3.x
 - Git & VS Code
