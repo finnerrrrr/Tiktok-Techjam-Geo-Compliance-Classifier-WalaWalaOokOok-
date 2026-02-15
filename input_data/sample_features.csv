@@ -1,0 +1,3 @@
+feature_name,feature_description
+EU-only age assurance flow,Deploy age gating and parental consent prompts for under-18 users in EU rollout regions.
+Personalized feed refresh,Improve recommendation ranking quality for global users with no legal routing.

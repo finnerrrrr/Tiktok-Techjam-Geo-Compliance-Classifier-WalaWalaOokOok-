@@ -1,106 +1,96 @@
-"""
-pilot.py - orchestrates the end-to-end compliance workflow.
-
-Assumptions made:
-- Each domain agent will initialise its own vector database by calling a yet-to-be-created
-  utility helper. Therefore the pilot instantiates agents without handling VDB setup.
-- The query preparation step uses `enhance_query` which returns a text summary of the
-  feature title and description. This text is sent to downstream agents.
-- Domain agents expose `analyze_feature(prepped_query)` and return a list of chunk
-  dictionaries with at least `content`, `relevance_score` and optional `citation`
-  and `domain_tag` fields.
-- RerankerAgent.process, VerifierAgent.process, AggregatorAgent.process and
-  ClassifierAgent.classify follow the interfaces defined in their respective modules.
-- Low verifier confidence triggers the HITLAgent for a possible manual override.
-"""
-
 from __future__ import annotations
 
-import asyncio
-from typing import List, Type
+import argparse
+from pathlib import Path
 
-from agents.youth_safety_agent import YouthSafetyAgent
-# from agents.data_privacy_agent import DataPrivacyAgent
-# from agents.content_moderation_agent import ContentModerationAgent
-# from agents.consumer_protection_agent import ConsumerProtectionAgent
-# from agents.ai_governance_agent import AIGovernanceAgent
-# from agents.ip_protection_agent import IPProtectionAgent
-from agents.reranker_agent import RerankerAgent
-from agents.verifier_agent import VerifierAgent
-from agents.hitl_agent import HITLAgent
-from agents.aggregator_agent import AggregatorAgent
-from agents.classifier_agent import ClassifierAgent
-
-from utils.inputqueryenhancer import enhance_query
+from offline.index_builder import ensure_qdrant_index
+from offline.qdrant_config import QdrantSettings
+from online.pipeline import run_batch
 
 
-def main(feature_title: str, feature_description: str):
-    """Run the full compliance workflow."""
-    # 1. Query preparation
-    prepped_query = enhance_query(feature_title, feature_description)
-    print("Prepared query:\n", prepped_query)
-    yield "Prepared query:\n" + prepped_query
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Geo compliance classifier (Qdrant hybrid backend)"
+    )
+    parser.add_argument(
+        "--input",
+        type=Path,
+        default=Path("input_data/sample_features.csv"),
+        help="Input CSV path with 2 columns: feature_name, feature_description",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("outputs/classification_output.csv"),
+        help="Output CSV path",
+    )
+    parser.add_argument(
+        "--data-root",
+        type=Path,
+        default=Path("data_sources"),
+        help="Root directory containing source .txt compliance docs",
+    )
+    parser.add_argument(
+        "--collection-name",
+        type=str,
+        default=None,
+        help="Optional Qdrant collection name override",
+    )
+    parser.add_argument(
+        "--qdrant-url",
+        type=str,
+        default=None,
+        help="Qdrant endpoint URL override (default from env or http://localhost:6333)",
+    )
+    parser.add_argument(
+        "--qdrant-api-key",
+        type=str,
+        default=None,
+        help="Qdrant API key override",
+    )
+    parser.add_argument(
+        "--rebuild-index",
+        action="store_true",
+        help="Rebuild and re-upsert offline index into Qdrant",
+    )
+    return parser.parse_args()
 
-    # 2. Initialise domain agents
-    # Assumes each agent handles its own VDB initialisation internally.
-    domain_agent_classes: List[Type] = [
-        YouthSafetyAgent
-        # DataPrivacyAgent,
-        # ContentModerationAgent,
-        # ConsumerProtectionAgent,
-        # AIGovernanceAgent,
-        # IPProtectionAgent,
-    ]
-    domain_agents = [cls() for cls in domain_agent_classes]
 
-    # 3. Retrieve chunks from all domain agents
-    all_chunks = []
-    for agent in domain_agents:
-        chunks = agent.analyze_feature(prepped_query)
-        # Expect each agent to return: List[{"content", "relevance_score", "citation"?, "domain_tag"?}]
-        print(f"{agent.name} returned {len(chunks)} chunks")
-        yield f"{agent.name} returned {len(chunks)} chunks"
-        all_chunks.extend(chunks)
+def build_settings(args: argparse.Namespace) -> QdrantSettings:
+    base = QdrantSettings.from_env()
+    return base.with_overrides(
+        url=args.qdrant_url,
+        api_key=args.qdrant_api_key,
+        collection_name=args.collection_name,
+        recreate_collection=args.rebuild_index,
+    )
 
-    # 4. Rerank and select diverse set of chunks
-    reranker = RerankerAgent()
-    selected_chunks = asyncio.run(reranker.process(all_chunks, prepped_query))
-    print(f"Reranker selected {len(selected_chunks)} chunks")
-    yield f"Reranker selected {len(selected_chunks)} chunks"
 
-    # 5. Verification for confidence score
-    verifier = VerifierAgent()
-    verification = verifier.process(selected_chunks, prepped_query)
-    print(f"Verification confidence: {verification['confidence']:.2f}")
-    yield f"Verification confidence: {verification['confidence']:.2f}"
+def main() -> None:
+    args = parse_args()
+    settings = build_settings(args)
 
-    # 6. Human-in-the-loop override if confidence low
-    hitl_feedback = None
-    if verification["escalate"]:
-        hitl_feedback = HITLAgent().process(verification, prepped_query)
+    stats = ensure_qdrant_index(
+        data_root=args.data_root,
+        settings=settings,
+        rebuild=args.rebuild_index,
+    )
+    if stats is not None:
+        print(
+            "Indexed Qdrant collection",
+            f"{settings.collection_name}: files={stats.files_processed} parents={stats.parent_chunks} children={stats.child_chunks} domains={stats.domains}",
+        )
+    else:
+        print(f"Using existing Qdrant collection: {settings.collection_name}")
 
-    # 7. Aggregation of context for classification
-    aggregator = AggregatorAgent()
-    aggregated = aggregator.process(verification["chunks"], hitl_feedback)
-
-    # 8. Final classification
-    classifier = ClassifierAgent()
-    result = asyncio.run(classifier.classify(aggregated, prepped_query))
-
-    # 9. Output results and audit trail
-    print("\n=== FINAL OUTPUT ===")
-    print(f"Flag: {result['flag']}")
-    print(f"Reasoning: {result['reasoning']}")
-    print(f"Regulations: {result['regulations']}")
-    print("Audit trail:")
-    for entry in result["audit_trail"]:
-        print(f"- {entry}")
-        yield f"- {entry}"
+    results = run_batch(
+        input_csv=args.input,
+        output_csv=args.output,
+        settings=settings,
+    )
+    print(f"Processed {len(results)} rows")
+    print(f"Output written to {args.output}")
 
 
 if __name__ == "__main__":
-    # Example invocation; replace with real feature details
-    main(
-        feature_title="Content visibility lock with NSP for EU DSA",
-        feature_description="To meet the transparency expectations of the EU Digital Services Act..."
-    )
+    main()

@@ -1,53 +1,105 @@
-# Geo Compliance Classifier
+# Geo Compliance Classifier (LangGraph + Qdrant Hybrid)
 
-## Problem Statement
-Automated pipeline that classifies new product features for compliance with global regulations. Given a feature title and description, the system retrieves relevant legal texts, verifies jurisdictional alignment, and outputs a triage label (Yes/No/Uncertain) along with an audit trail.
+This repository has a split architecture:
 
-## Features and Functionality
-- **Agent pipeline:** query preparation, domain retrieval, reranking, verification, optional human-in-the-loop review, aggregation and classification.
-- **Jurisdiction-aware retrieval:** domain agents search a curated knowledge base of regional regulations.
-- **Transparent outputs:** final decisions include reasoning, cited regulations and an audit trail.
-- **Demo:** run `python main.py` for a local example.
+- `offline/`: Qdrant-backed ingestion, parent-child chunking, and hybrid retrieval
+- `online/`: LangGraph workflow for batch geo-compliance classification
 
-## Development Tools
-- Python 3.x
-- Git & VS Code
+## Offline Architecture
 
-## APIs
-- OpenAI API for language models and embeddings
-- Hugging Face models for reranking
+The offline layer is Qdrant-only and uses `data_sources/` as the corpus root.
 
-## Libraries
-- LangChain & LangChain Community
-- ChromaDB
-- NLTK
-- NumPy
-- Pydantic
-- Rank-BM25
-- Requests
-- Python Dotenv
+### Ingestion and indexing
 
-## Assets
-- `assets/atechjam_archi-1.png` – high level agent workflow diagram
+1. Parse `.txt` and extensionless legal files from `data_sources/`.
+2. Extract title/body (`/()/()/` split when available, fallback to first-line title).
+3. Infer domain from folder path or content keywords.
+4. Parent-child chunking:
+- Parent: markdown-aware splitter first (`MarkdownHeaderTextSplitter`)
+- Fallback parent splitter: recursive character splitter
+- Child: recursive character splitter over parent chunks
+5. Index child chunks into a single Qdrant collection with hybrid vectors:
+- Dense vector: `dense` (FastEmbed)
+- Sparse vector: `sparse` (FastEmbed BM25)
+6. Store metadata payload including `parent_id` and `parent_text` snippet.
 
-## Datasets
-- Regulatory text snippets under `kb/` (e.g., GDPR, EU DSA, PDPA, youth safety laws)
+### Retrieval
 
-## Repository
-This project is open sourced at: [Geo Compliance Classifier Repository](https://github.com/your-team/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-)
+Retriever runs hybrid query (dense + sparse fusion) with optional domain filtering and returns:
+- `chunk_id`, `domain`, `law_name`, `source_path`, `text`, `score`
+- `parent_id`, `parent_snippet`
 
-### Local Demo Setup
-1. Clone the repository
-   ```bash
-   git clone https://github.com/your-team/Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-.git
-   cd Tiktok-Techjam-Geo-Compliance-Classifier-WalaWalaOokOok-
-   ```
-2. Install dependencies
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Provide an `OPENAI_API_KEY` in your environment
-4. Run the demo
-   ```bash
-   python main.py
-   ```
+## Online Workflow Nodes
+
+1. `query_enhance_route`
+2. `retrieve`
+3. `rerank`
+4. `classify`
+5. `finalize`
+
+## Input and Output
+
+Input CSV must contain:
+- `feature_name`
+- `feature_description`
+
+Output CSV includes:
+- `needs_geo_compliance`
+- `reasoning`
+- `citations` (JSON list)
+- `confidence`
+- `needs_hitl`
+- `hitl_reason`
+- `audit_trail` (JSON list)
+
+## Setup
+
+Start Qdrant locally:
+
+```bash
+docker compose up -d qdrant
+```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+## Usage
+
+Rebuild Qdrant index from `data_sources/` and run batch:
+
+```bash
+python3 main.py \
+  --input input_data/sample_features.csv \
+  --output outputs/classification_output.csv \
+  --rebuild-index
+```
+
+Use existing Qdrant collection:
+
+```bash
+python3 main.py \
+  --input input_data/sample_features.csv \
+  --output outputs/classification_output.csv
+```
+
+Optional overrides:
+
+- `--data-root data_sources`
+- `--collection-name geo_compliance_hybrid_v1`
+- `--qdrant-url http://localhost:6333`
+- `--qdrant-api-key <key>`
+
+## Environment Variables
+
+- `QDRANT_URL`
+- `QDRANT_API_KEY`
+- `QDRANT_COLLECTION`
+- `QDRANT_TIMEOUT`
+- `QDRANT_PREFER_GRPC`
+- `QDRANT_VECTOR_SIZE`
+- `QDRANT_DISTANCE`
+- `QDRANT_RECREATE_COLLECTION`
+- `OPENAI_API_KEY` (for online LLM nodes)
