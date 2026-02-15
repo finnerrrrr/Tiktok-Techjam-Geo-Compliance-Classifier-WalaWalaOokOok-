@@ -1,0 +1,12 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant_local
+    restart: always
+    ports:
+      - "6333:6333" # The REST API port (for your Python script)
+      - "6334:6334" # The GRPC port (internal speed)
+    volumes:
+      - ./qdrant_storage:/qdrant/storage # Persist data so it survives restarts
+    environment:
+      - QDRANT__SERVICE__ENABLE_GRPC=true
