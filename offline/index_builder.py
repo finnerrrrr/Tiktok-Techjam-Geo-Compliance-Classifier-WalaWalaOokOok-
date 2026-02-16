@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
 
-from fastembed import SparseTextEmbedding, TextEmbedding
+from fastembed import LateInteractionTextEmbedding, SparseTextEmbedding, TextEmbedding
 from qdrant_client import QdrantClient, models
 
 from offline.chunking import ChildChunk, build_parent_child_chunks, iter_source_files, parse_source
@@ -56,7 +56,12 @@ def _create_qdrant_client(settings: QdrantSettings) -> QdrantClient:
     )
 
 
-def _ensure_collection(client: QdrantClient, settings: QdrantSettings, vector_size: int) -> None:
+def _ensure_collection(
+    client: QdrantClient,
+    settings: QdrantSettings,
+    dense_vector_size: int,
+    late_vector_size: int,
+) -> None:
     exists = client.collection_exists(settings.collection_name)
     if exists and settings.recreate_collection:
         client.delete_collection(settings.collection_name)
@@ -66,13 +71,23 @@ def _ensure_collection(client: QdrantClient, settings: QdrantSettings, vector_si
         client.create_collection(
             collection_name=settings.collection_name,
             vectors_config={
-                "dense": models.VectorParams(
-                    size=vector_size,
+                settings.dense_vector_name: models.VectorParams(
+                    size=dense_vector_size,
                     distance=settings.distance_enum(),
-                )
+                ),
+                settings.late_vector_name: models.VectorParams(
+                    size=late_vector_size,
+                    distance=models.Distance.COSINE,
+                    multivector_config=models.MultiVectorConfig(
+                        comparator=models.MultiVectorComparator.MAX_SIM,
+                    ),
+                    hnsw_config=models.HnswConfigDiff(m=0),
+                ),
             },
             sparse_vectors_config={
-                "sparse": models.SparseVectorParams()
+                settings.sparse_vector_name: models.SparseVectorParams(
+                    modifier=models.Modifier.IDF,
+                )
             },
         )
 
@@ -84,8 +99,36 @@ def _ensure_collection(client: QdrantClient, settings: QdrantSettings, vector_si
                 field_schema=models.PayloadSchemaType.KEYWORD,
             )
         except Exception:
-            # Idempotent safety: ignore if index already exists.
             pass
+
+
+def _collection_compatible(client: QdrantClient, settings: QdrantSettings) -> bool:
+    if not client.collection_exists(settings.collection_name):
+        return False
+
+    try:
+        info = client.get_collection(settings.collection_name)
+        params = info.config.params
+        vectors_cfg = getattr(params, "vectors", None)
+        sparse_cfg = getattr(params, "sparse_vectors", None)
+
+        dense_ok = False
+        late_ok = False
+        sparse_ok = False
+
+        if isinstance(vectors_cfg, dict):
+            dense_ok = settings.dense_vector_name in vectors_cfg
+            late_ok = settings.late_vector_name in vectors_cfg
+        else:
+            dense_ok = False
+            late_ok = False
+
+        if isinstance(sparse_cfg, dict):
+            sparse_ok = settings.sparse_vector_name in sparse_cfg
+
+        return dense_ok and late_ok and sparse_ok
+    except Exception:
+        return False
 
 
 def _iter_child_chunks(data_root: Path) -> Iterable[ChildChunk]:
@@ -102,6 +145,27 @@ def _iter_child_chunks(data_root: Path) -> Iterable[ChildChunk]:
             yield child
 
 
+def _to_dense(vector) -> list[float]:
+    return vector.tolist() if hasattr(vector, "tolist") else list(vector)
+
+
+def _to_multivector(vectors) -> list[list[float]]:
+    if hasattr(vectors, "tolist"):
+        matrix = vectors.tolist()
+    else:
+        matrix = vectors
+    return [row.tolist() if hasattr(row, "tolist") else list(row) for row in matrix]
+
+
+def _to_sparse_payload(sparse_vector):
+    if hasattr(sparse_vector, "as_object"):
+        return sparse_vector.as_object()
+    return models.SparseVector(
+        indices=sparse_vector.indices.tolist(),
+        values=sparse_vector.values.tolist(),
+    )
+
+
 def build_qdrant_index(data_root: Path, settings: QdrantSettings) -> IndexBuildStats:
     if not data_root.exists():
         raise FileNotFoundError(f"Data root not found: {data_root}")
@@ -113,20 +177,36 @@ def build_qdrant_index(data_root: Path, settings: QdrantSettings) -> IndexBuildS
 
     dense_model = TextEmbedding(model_name=DENSE_MODEL_NAME)
     sparse_model = SparseTextEmbedding(model_name=SPARSE_MODEL_NAME)
+    late_model = LateInteractionTextEmbedding(model_name=settings.late_interaction_model_name)
 
     child_texts = [chunk.child_text for chunk in child_chunks]
-    dense_vectors = list(dense_model.embed(child_texts))
-    sparse_vectors = list(sparse_model.embed(child_texts))
-    vector_size = len(dense_vectors[0])
+    late_texts = [(f"{chunk.child_text}\n{chunk.parent_text}").strip() for chunk in child_chunks]
 
-    _ensure_collection(client, settings, vector_size)
+    dense_embeddings = list(dense_model.embed(child_texts))
+    sparse_embeddings = list(sparse_model.embed(child_texts))
+    late_embeddings = list(late_model.passage_embed(late_texts)) if hasattr(late_model, "passage_embed") else list(late_model.embed(late_texts))
+
+    dense_vector_size = len(_to_dense(dense_embeddings[0]))
+    late_vector_size = len(_to_multivector(late_embeddings[0])[0])
+
+    _ensure_collection(
+        client=client,
+        settings=settings,
+        dense_vector_size=dense_vector_size,
+        late_vector_size=late_vector_size,
+    )
 
     points: List[models.PointStruct] = []
     parent_ids: set[str] = set()
     source_files: set[str] = set()
     domains: set[str] = set()
 
-    for chunk, dense_vec, sparse_vec in zip(child_chunks, dense_vectors, sparse_vectors):
+    for chunk, dense_embedding, sparse_embedding, late_embedding in zip(
+        child_chunks,
+        dense_embeddings,
+        sparse_embeddings,
+        late_embeddings,
+    ):
         point_id = _deterministic_point_id(chunk.source_path, chunk.parent_id, chunk.child_index)
         source_files.add(chunk.source_path)
         parent_ids.add(f"{chunk.source_path}:{chunk.parent_id}")
@@ -149,11 +229,9 @@ def build_qdrant_index(data_root: Path, settings: QdrantSettings) -> IndexBuildS
             models.PointStruct(
                 id=point_id,
                 vector={
-                    "dense": dense_vec.tolist(),
-                    "sparse": models.SparseVector(
-                        indices=sparse_vec.indices.tolist(),
-                        values=sparse_vec.values.tolist(),
-                    ),
+                    settings.dense_vector_name: _to_dense(dense_embedding),
+                    settings.sparse_vector_name: _to_sparse_payload(sparse_embedding),
+                    settings.late_vector_name: _to_multivector(late_embedding),
                 },
                 payload=payload,
             )
@@ -177,9 +255,9 @@ def build_qdrant_index(data_root: Path, settings: QdrantSettings) -> IndexBuildS
 
 def ensure_qdrant_index(data_root: Path, settings: QdrantSettings, rebuild: bool = False) -> IndexBuildStats | None:
     client = _create_qdrant_client(settings)
-    exists = client.collection_exists(settings.collection_name)
+    schema_ok = _collection_compatible(client, settings)
 
-    needs_build = rebuild or settings.recreate_collection or not exists
+    needs_build = rebuild or settings.recreate_collection or not schema_ok
     if not needs_build:
         count = client.count(collection_name=settings.collection_name, exact=False)
         points_count = int(getattr(count, "count", 0))

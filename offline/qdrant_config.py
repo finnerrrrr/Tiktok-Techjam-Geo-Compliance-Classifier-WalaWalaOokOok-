@@ -13,9 +13,14 @@ class QdrantSettings(BaseModel):
     collection_name: str = Field(default="geo_compliance_hybrid_v1")
     timeout: float = Field(default=30.0)
     prefer_grpc: bool = Field(default=False)
-    vector_size: int = Field(default=384)
     distance: str = Field(default="Cosine")
     recreate_collection: bool = Field(default=False)
+    hybrid_recall_multiplier: int = Field(default=8)
+    hybrid_recall_min: int = Field(default=40)
+    late_interaction_model_name: str = Field(default="colbert-ir/colbertv2.0")
+    dense_vector_name: str = Field(default="all-MiniLM-L6-v2")
+    sparse_vector_name: str = Field(default="bm25")
+    late_vector_name: str = Field(default="colbertv2.0")
 
     @classmethod
     def from_env(cls) -> "QdrantSettings":
@@ -25,9 +30,14 @@ class QdrantSettings(BaseModel):
             collection_name=os.getenv("QDRANT_COLLECTION", "geo_compliance_hybrid_v1"),
             timeout=float(os.getenv("QDRANT_TIMEOUT", "30")),
             prefer_grpc=os.getenv("QDRANT_PREFER_GRPC", "false").lower() == "true",
-            vector_size=int(os.getenv("QDRANT_VECTOR_SIZE", "384")),
             distance=os.getenv("QDRANT_DISTANCE", "Cosine"),
             recreate_collection=os.getenv("QDRANT_RECREATE_COLLECTION", "false").lower() == "true",
+            hybrid_recall_multiplier=int(os.getenv("QDRANT_HYBRID_RECALL_MULTIPLIER", "8")),
+            hybrid_recall_min=int(os.getenv("QDRANT_HYBRID_RECALL_MIN", "40")),
+            late_interaction_model_name=os.getenv("QDRANT_LATE_INTERACTION_MODEL", "colbert-ir/colbertv2.0"),
+            dense_vector_name=os.getenv("QDRANT_DENSE_VECTOR_NAME", "all-MiniLM-L6-v2"),
+            sparse_vector_name=os.getenv("QDRANT_SPARSE_VECTOR_NAME", "bm25"),
+            late_vector_name=os.getenv("QDRANT_LATE_VECTOR_NAME", "colbertv2.0"),
         )
 
     def with_overrides(
